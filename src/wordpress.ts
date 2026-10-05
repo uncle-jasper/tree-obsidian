@@ -119,6 +119,9 @@ export class WordPress {
       component.load();
       await MarkdownRenderer.render(this.app, body, el, file.path, component);
       cleanForWordPress(el);
+      // As Tree does: repeat the title as an <h3> at the top of the body. The blog's theme shows
+      // only the date on a post page, so without this the post has no visible title.
+      el.prepend(createEl('h3', { text: title }));
 
       this.say('sending to wordpress…');
       const res = await requestUrl({
