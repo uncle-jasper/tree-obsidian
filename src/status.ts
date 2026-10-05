@@ -32,6 +32,23 @@ const idleMessages = [
 ];
 const IDLE_MS = 3 * 60 * 1000;
 
+// Tree's word goal messages
+const goalMessages = [
+  'goal reached. well done.',
+  'you hit your target.',
+  'that\'s your word count. nice work.',
+  'target reached. take a moment.',
+];
+const fmtGoal = (n: number) => (n >= 1000 ? (n / 1000).toFixed(n % 1000 ? 1 : 0) + 'k' : String(n));
+
+export interface WordGoal { target: number; baseline: number; path: string; }
+
+export interface StatusHooks {
+  onQuick(anchor: HTMLElement): void;
+  onSetGoal(target: number): void;       // 0 clears
+  onPeekObsidian(on: boolean): void;     // the ⋯ that brings up Obsidian's own status bar
+}
+
 const pick = (list: string[]) => list[Math.floor(Math.random() * list.length)];
 
 export const countWords = (s: string) => (s.trim() === '' ? 0 : s.trim().split(/\s+/).filter(Boolean).length);
@@ -53,21 +70,58 @@ export class StatusLine {
   private reached = new Set<number>();
   private idleTimer = 0;
   private pending: string | null = null;   // an important message waiting for the current one to finish
+  private goalBar: HTMLElement;
+  private editingGoal = false;
 
-  constructor(private getSettings: () => TreeSettings, onQuick: (anchor: HTMLElement) => void) {
+  constructor(private getSettings: () => TreeSettings, private hooks: StatusHooks) {
     this.el = createDiv({ cls: 'tree-status' });
-    // Unlike Tree: the Aa control has the left end to itself (and stays clear of Obsidian's bar
-    // in the bottom-right corner); the counts sit together on the right, apart from the button.
+    // Unlike Tree: the Aa control has the left end to itself; the counts sit together on the right,
+    // and a faint ⋯ at the far right is the one spot that brings up Obsidian's own status bar.
     const left = this.el.createDiv({ cls: 'tree-stat-left' });
     const quick = left.createSpan({ cls: 'tree-quick-toggle', text: 'Aa', attr: { 'aria-label': 'Theme and font' } });
-    quick.onclick = () => { if (!document.body.hasClass('tree-just-write')) onQuick(this.el); };
+    quick.onclick = () => { if (!document.body.hasClass('tree-just-write')) hooks.onQuick(this.el); };
     this.centre = this.el.createDiv({ cls: 'tree-stat-centre' });
     this.msg    = this.el.createDiv({ cls: 'tree-stat-msg' });
     const right = this.el.createDiv({ cls: 'tree-stat-right' });
-    this.words  = right.createSpan();
+    this.words  = right.createSpan({ cls: 'tree-stat-words', attr: { 'aria-label': 'Set a word goal' } });
+    this.words.onclick = () => this.editGoal();
     this.chars  = right.createSpan();
     this.cursor = right.createSpan();
+    const peek  = right.createSpan({ cls: 'tree-obsidian-peek', text: '⋯', attr: { 'aria-label': 'Obsidian status bar' } });
+    peek.onmouseenter = () => hooks.onPeekObsidian(true);
+    peek.onmouseleave = () => hooks.onPeekObsidian(false);
+    // Tree's goal progress line along the bottom edge
+    this.goalBar = this.el.createDiv({ cls: 'tree-goal-bar' });
   }
+
+  // Click the word count (or Ctrl+Shift+W): it turns into a number box. Enter sets, 0 clears, Escape cancels.
+  editGoal() {
+    if (this.editingGoal || !this.el.isConnected) return;
+    this.editingGoal = true;
+    const goal = this.getSettings().goal;
+    this.words.empty();
+    const input = this.words.createEl('input', {
+      cls: 'tree-goal-input',
+      attr: { type: 'number', min: '0', max: '99999', placeholder: 'goal' },
+    });
+    if (goal && goal.path === this.notePath) input.value = String(goal.target);
+    const done = (save: boolean) => {
+      if (!this.editingGoal) return;
+      this.editingGoal = false;
+      if (save) this.hooks.onSetGoal(Math.max(0, Math.floor(Number(input.value)) || 0));
+      input.remove();
+      this.refresh(this.view);
+    };
+    input.onkeydown = e => {
+      if (e.key === 'Enter') { e.preventDefault(); done(true); }
+      else if (e.key === 'Escape') { e.preventDefault(); e.stopPropagation(); done(false); }
+    };
+    input.onblur = () => done(false);
+    input.onclick = e => e.stopPropagation();
+    input.focus();
+  }
+
+  private view: MarkdownView | null = null;
 
   attach(view: MarkdownView | null) {
     if (!view || !this.getSettings().statusLine) { this.el.detach(); return; }
@@ -78,6 +132,7 @@ export class StatusLine {
   // edited = this refresh follows something you typed (not opening a note, sync, etc.)
   refresh(view: MarkdownView | null, edited = false) {
     if (!view || this.el.parentElement !== view.containerEl) return;
+    this.view = view;
     const s      = this.getSettings();
     const editor = view.editor;
     const text   = editor.getValue();
@@ -89,19 +144,29 @@ export class StatusLine {
       this.notePath = path;
       this.reached = new Set();
     } else if (edited) {
+      this.checkGoal(words, this.lastWords);
       this.checkMilestone(words, this.lastWords);
       this.resetIdle();
     }
     this.lastWords = words;
 
     const sel = editor.getSelection();
-    this.words.setText(sel ? plural(countWords(sel), 'word') + ' selected' : plural(words, 'word'));
+    if (!this.editingGoal) this.words.setText(sel ? plural(countWords(sel), 'word') + ' selected' : plural(words, 'word'));
 
     this.chars.toggle(s.showChars);
     this.chars.setText(plural(text.length, 'char'));
 
-    const mins = Math.ceil(words / 200);
-    this.centre.setText(s.showReadTime && words > 50 ? mins + ' min read' : '');
+    // A word goal on this note takes the middle (and the reading time steps aside), as in the plan
+    const goal = s.goal && s.goal.path === path ? s.goal : null;
+    if (goal) {
+      const session = Math.max(0, words - goal.baseline);
+      this.centre.setText(session + ' / ' + fmtGoal(goal.target));
+      this.goalBar.style.width = Math.min(100, (session / goal.target) * 100) + '%';
+    } else {
+      const mins = Math.ceil(words / 200);
+      this.centre.setText(s.showReadTime && words > 50 ? mins + ' min read' : '');
+    }
+    this.goalBar.toggleClass('is-active', !!goal);
 
     const editing = view.getMode() === 'source';
     this.cursor.toggle(s.showCursor && editing);
@@ -109,6 +174,14 @@ export class StatusLine {
       const pos = editor.getCursor();
       this.cursor.setText('ln ' + (pos.line + 1) + ', col ' + (pos.ch + 1));
     }
+  }
+
+  // Tree's updateGoalBar(): a message the moment you cross the target
+  private checkGoal(words: number, prev: number) {
+    const goal = this.getSettings().goal;
+    if (!goal || goal.path !== this.notePath) return;
+    const now = words - goal.baseline, before = prev - goal.baseline;
+    if (now >= goal.target && before < goal.target) this.typeMessage(pick(goalMessages));
   }
 
   // Tree's checkMilestone()

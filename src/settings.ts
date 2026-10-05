@@ -2,6 +2,7 @@ import { App, PluginSettingTab, Setting } from 'obsidian';
 import type TreePlugin from './main';
 import type { CustomColors } from './custom';
 import type { JustWriteState } from './justwrite';
+import type { WordGoal } from './status';
 
 export interface TreeSettings {
   theme: string;        // '' = leave Obsidian's theme alone
@@ -19,6 +20,7 @@ export interface TreeSettings {
   typewriter: boolean;
   tabOut: boolean;
   justWrite: JustWriteState | null;
+  goal: WordGoal | null;
   secretReturn: string;   // the terminal theme to go "back to green" to
   custom: CustomColors;
   custom2: CustomColors;
@@ -40,6 +42,7 @@ export const DEFAULT_SETTINGS: TreeSettings = {
   typewriter: false,
   tabOut: true,
   justWrite: null,
+  goal: null,
   secretReturn: 'terminal',
   custom:  { bg: '#f5f0e8', text: '#2c2416', accent: '#8b6e4e' },   // Tree's defaults
   custom2: { bg: '#f5f0e8', text: '#2c2416', accent: '#8b6e4e' },
@@ -148,7 +151,7 @@ export class TreeSettingTab extends PluginSettingTab {
 
     new Setting(containerEl)
       .setName('Hide Obsidian\'s status bar')
-      .setDesc('While Tree\'s status line is showing. Obsidian\'s bar (backlinks, sync and so on) appears when you hover over the bottom-right corner.')
+      .setDesc('While Tree\'s status line is showing. Hover over the faint ⋯ at the right end of Tree\'s line to bring up Obsidian\'s bar (backlinks, sync and so on).')
       .addToggle(t => t.setValue(s.hideObsidianStatus)
         .onChange(async v => { s.hideObsidianStatus = v; await save(); }));
 

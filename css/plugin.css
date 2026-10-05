@@ -44,12 +44,44 @@ body.tree-size-on .workspace-leaf-content[data-type="markdown"] {
 .tree-status .tree-stat-centre.is-hidden { opacity: 0; }
 .tree-status .tree-stat-msg { opacity: 0; transition: opacity 0.5s; }
 
-/* ── Obsidian's own status bar: out of the way until you hover over the bottom-right corner ── */
+/* ── Obsidian's own status bar: hidden, and untouchable so it can't cover Tree's line,
+      until you hover over Tree's ⋯ (then it stays while the mouse is on it) ── */
 body.tree-hide-obsidian-status .status-bar {
   opacity: 0;
+  pointer-events: none;
   transition: opacity 0.3s;
 }
-body.tree-hide-obsidian-status .status-bar:hover { opacity: 1; }
+body.tree-hide-obsidian-status.tree-obsidian-peek .status-bar {
+  opacity: 1;
+  pointer-events: auto;
+}
+.tree-obsidian-peek { display: none; cursor: default; opacity: 0.5; padding: 0 2px; transition: opacity 0.2s; }
+.tree-obsidian-peek:hover { opacity: 1; color: var(--text-normal); }
+body.tree-hide-obsidian-status:not(.is-mobile):not(.tree-focus) .tree-obsidian-peek { display: inline; }
+
+/* ── Word goal: click the word count to set one; progress shows in the middle and along the bottom edge ── */
+.tree-stat-words { cursor: pointer; transition: color 0.2s; }
+.tree-stat-words:hover { color: var(--text-normal); }
+.tree-goal-input {
+  all: unset;
+  width: 6ch;
+  font: inherit;
+  color: var(--text-normal);
+  border-bottom: 1px solid var(--text-muted);
+}
+.tree-goal-input::-webkit-inner-spin-button,
+.tree-goal-input::-webkit-outer-spin-button { -webkit-appearance: none; margin: 0; }
+.tree-goal-bar {
+  position: absolute;
+  bottom: 0; left: 0;
+  height: 2px;
+  width: 0%;
+  background: var(--interactive-accent);
+  opacity: 0;
+  transition: width 0.5s ease, opacity 0.3s;
+  pointer-events: none;
+}
+.tree-goal-bar.is-active { opacity: 0.55; }
 
 /* ── Focus mode: strip Obsidian down to the page ── */
 body.tree-focus .workspace-ribbon,

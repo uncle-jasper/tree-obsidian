@@ -1,8 +1,8 @@
-import { MarkdownView, Plugin, setIcon } from 'obsidian';
+import { MarkdownView, Platform, Plugin, setIcon } from 'obsidian';
 import { EditorView, drawSelection } from '@codemirror/view';
 import { Transaction } from '@codemirror/state';
 import { DEFAULT_SETTINGS, SECRET_THEMES, THEMES, TreeSettings, TreeSettingTab } from './settings';
-import { StatusLine } from './status';
+import { StatusLine, countWords } from './status';
 import { QuickPanel } from './quick';
 import { CUSTOM_VARS, customPalette } from './custom';
 import { JustWrite } from './justwrite';
@@ -26,7 +26,11 @@ export default class TreePlugin extends Plugin {
     this.quick  = new QuickPanel(this);
     this.justWrite = new JustWrite(this);
     new Eggs(this).register();
-    this.status = new StatusLine(() => this.settings, anchor => this.quick.toggle(anchor));
+    this.status = new StatusLine(() => this.settings, {
+      onQuick: anchor => this.quick.toggle(anchor),
+      onSetGoal: target => this.setGoal(target),
+      onPeekObsidian: on => this.peekObsidian(on),
+    });
     this.addSettingTab(new TreeSettingTab(this.app, this));
 
     // Status line follows the active note
@@ -54,6 +58,11 @@ export default class TreePlugin extends Plugin {
     });
 
     this.app.workspace.onLayoutReady(() => {
+      const bar = document.querySelector<HTMLElement>('.status-bar');
+      if (bar) {
+        this.registerDomEvent(bar, 'mouseenter', () => this.peekObsidian(true));
+        this.registerDomEvent(bar, 'mouseleave', () => this.peekObsidian(false));
+      }
       this.attachStatus();
       this.justWrite.resume();
       window.setTimeout(() => this.status.welcome(), 800);
@@ -65,6 +74,10 @@ export default class TreePlugin extends Plugin {
       if (this.justWrite.active) return;   // the look is locked during Just Write
       this.quick.toggle(this.status.el.isConnected ? this.status.el : document.body);
     } });
+    // Tree's Ctrl+Shift+W. Free on Mac (Obsidian closes windows with Cmd+Shift+W); elsewhere Ctrl is Mod, so no default.
+    this.addCommand({ id: 'word-goal', name: 'Set word goal for this note',
+      hotkeys: Platform.isMacOS ? [{ modifiers: ['Ctrl', 'Shift'], key: 'W' }] : [],
+      callback: () => this.status.editGoal() });
     this.addCommand({ id: 'just-write', name: 'Just Write (30 minutes or 500 words)', hotkeys: [{ modifiers: ['Mod', 'Shift'], key: 'J' }],
       callback: () => this.justWrite.start() });
     this.addCommand({ id: 'toggle-zen', name: 'Toggle zen mode', callback: () => this.toggleZen() });
@@ -79,7 +92,7 @@ export default class TreePlugin extends Plugin {
     // Escape leaves focus mode, unless something else (a modal, menu, suggester) wants it first
     this.registerDomEvent(document, 'keydown', (e: KeyboardEvent) => {
       if (!this.focusActive || e.key !== 'Escape') return;
-      if (this.quick.isOpen || document.querySelector('.modal-container, .menu, .suggestion-container, .prompt')) return;
+      if (this.quick.isOpen || (document.activeElement as HTMLElement | null)?.closest('.tree-status') || document.querySelector('.modal-container, .menu, .suggestion-container, .prompt')) return;
       if ((this.app.vault as any).getConfig?.('vimMode')) return;
       e.preventDefault();
       this.setFocus(false);
@@ -90,7 +103,7 @@ export default class TreePlugin extends Plugin {
     this.quick.close();
     this.status.destroy();
     this.exitEl?.remove();
-    document.body.removeClass('tree-focus', 'tree-typewriter', 'tree-just-write', 'tree-hide-obsidian-status', 'tree-font-on', 'tree-size-on', ...this.themeClasses());
+    document.body.removeClass('tree-focus', 'tree-typewriter', 'tree-just-write', 'tree-hide-obsidian-status', 'tree-obsidian-peek', 'tree-font-on', 'tree-size-on', ...this.themeClasses());
     document.body.style.removeProperty('--tree-font');
     document.body.style.removeProperty('--tree-font-size');
     document.body.style.removeProperty('--tree-line-length');
@@ -184,5 +197,26 @@ export default class TreePlugin extends Plugin {
     this.settings.typewriter = !this.settings.typewriter;
     await this.saveSettings();
     this.status.typeMessage(this.settings.typewriter ? 'typewriter on.' : 'typewriter off.');
+  }
+
+  // Word goal (Tree's setGoal): counts from now, in this note only
+  async setGoal(target: number) {
+    const view = this.app.workspace.getActiveViewOfType(MarkdownView);
+    if (!view?.file) return;
+    this.settings.goal = target > 0
+      ? { target, baseline: countWords(view.editor.getValue()), path: view.file.path }
+      : null;
+    await this.saveSettings();
+  }
+
+  // Obsidian's status bar shows while the mouse is on Tree's ⋯ or on the bar itself
+  private peekTimer = 0;
+  peekObsidian(on: boolean) {
+    clearTimeout(this.peekTimer);
+    if (on) { document.body.addClass('tree-obsidian-peek'); return; }
+    // a moment's grace to move from the ⋯ onto the bar
+    this.peekTimer = window.setTimeout(() => {
+      if (!document.querySelector('.status-bar:hover')) document.body.removeClass('tree-obsidian-peek');
+    }, 250);
   }
 }
