@@ -90,7 +90,7 @@ export default class TreePlugin extends Plugin {
     this.quick.close();
     this.status.destroy();
     this.exitEl?.remove();
-    document.body.removeClass('tree-focus', 'tree-typewriter', 'tree-just-write', 'tree-font-on', 'tree-size-on', ...this.themeClasses());
+    document.body.removeClass('tree-focus', 'tree-typewriter', 'tree-just-write', 'tree-hide-obsidian-status', 'tree-font-on', 'tree-size-on', ...this.themeClasses());
     document.body.style.removeProperty('--tree-font');
     document.body.style.removeProperty('--tree-font-size');
     document.body.style.removeProperty('--tree-line-length');
@@ -132,6 +132,7 @@ export default class TreePlugin extends Plugin {
     body.style.setProperty('--tree-font-size', s.fontSize + 'px');
     body.style.setProperty('--tree-line-length', s.lineLength + 'ch');
     body.toggleClass('tree-typewriter', s.typewriter);
+    body.toggleClass('tree-hide-obsidian-status', s.statusLine && s.hideObsidianStatus);
     this.app.workspace.updateOptions();   // re-run editor extensions so zen/typewriter changes show at once
   }
 

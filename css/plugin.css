@@ -44,6 +44,13 @@ body.tree-size-on .workspace-leaf-content[data-type="markdown"] {
 .tree-status .tree-stat-centre.is-hidden { opacity: 0; }
 .tree-status .tree-stat-msg { opacity: 0; transition: opacity 0.5s; }
 
+/* ── Obsidian's own status bar: out of the way until you hover over the bottom-right corner ── */
+body.tree-hide-obsidian-status .status-bar {
+  opacity: 0;
+  transition: opacity 0.3s;
+}
+body.tree-hide-obsidian-status .status-bar:hover { opacity: 1; }
+
 /* ── Focus mode: strip Obsidian down to the page ── */
 body.tree-focus .workspace-ribbon,
 body.tree-focus .mod-left-split,
@@ -96,7 +103,7 @@ body.tree-focus .tree-status.is-open { opacity: 1; }
 
 .tree-quick {
   position: absolute;
-  right: 10px;
+  left: 10px;
   bottom: calc(100% + 6px);
   z-index: 40;
   display: flex;
@@ -114,7 +121,7 @@ body.tree-focus .tree-status.is-open { opacity: 1; }
 body > .tree-quick {
   position: fixed;
   bottom: calc(40px + env(safe-area-inset-bottom, 0px));
-  right: 16px;
+  left: 16px;
 }
 .tree-quick-row {
   display: grid;

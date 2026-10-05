@@ -9,6 +9,7 @@ export interface TreeSettings {
   fontSize: number;     // 0  = Obsidian's size
   statusLine: boolean;
   statusMessages: boolean;
+  hideObsidianStatus: boolean;
   showChars: boolean;
   showReadTime: boolean;
   showCursor: boolean;
@@ -29,6 +30,7 @@ export const DEFAULT_SETTINGS: TreeSettings = {
   fontSize: 0,
   statusLine: true,
   statusMessages: true,
+  hideObsidianStatus: true,
   showChars: true,
   showReadTime: true,
   showCursor: true,
@@ -143,6 +145,12 @@ export class TreeSettingTab extends PluginSettingTab {
       .setDesc('Tree\'s status line at the bottom of each note. Also shows on iPad.')
       .addToggle(t => t.setValue(s.statusLine)
         .onChange(async v => { s.statusLine = v; await save(); }));
+
+    new Setting(containerEl)
+      .setName('Hide Obsidian\'s status bar')
+      .setDesc('While Tree\'s status line is showing. Obsidian\'s bar (backlinks, sync and so on) appears when you hover over the bottom-right corner.')
+      .addToggle(t => t.setValue(s.hideObsidianStatus)
+        .onChange(async v => { s.hideObsidianStatus = v; await save(); }));
 
     new Setting(containerEl)
       .setName('Status messages')

@@ -57,14 +57,14 @@ export class StatusLine {
   constructor(private getSettings: () => TreeSettings, onQuick: (anchor: HTMLElement) => void) {
     this.el = createDiv({ cls: 'tree-status' });
     const left = this.el.createDiv({ cls: 'tree-stat-left' });
+    // Aa sits at the left end: the bottom-right corner belongs to Obsidian's own status bar
+    const quick = left.createSpan({ cls: 'tree-quick-toggle', text: 'Aa', attr: { 'aria-label': 'Theme and font' } });
+    quick.onclick = () => { if (!document.body.hasClass('tree-just-write')) onQuick(this.el); };
     this.words  = left.createSpan();
     this.chars  = left.createSpan();
     this.centre = this.el.createDiv({ cls: 'tree-stat-centre' });
     this.msg    = this.el.createDiv({ cls: 'tree-stat-msg' });
-    const right = this.el.createDiv({ cls: 'tree-stat-right' });
-    this.cursor = right.createSpan();
-    const quick = right.createSpan({ cls: 'tree-quick-toggle', text: 'Aa', attr: { 'aria-label': 'Theme and font' } });
-    quick.onclick = () => { if (!document.body.hasClass('tree-just-write')) onQuick(this.el); };
+    this.cursor = this.el.createDiv({ cls: 'tree-stat-right' }).createSpan();
   }
 
   attach(view: MarkdownView | null) {
