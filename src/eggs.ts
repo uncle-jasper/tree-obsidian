@@ -6,6 +6,7 @@ const KONAMI = ['ArrowUp', 'ArrowUp', 'ArrowDown', 'ArrowDown', 'ArrowLeft', 'Ar
 const DOOGIE = ['a', 'b', 'a', 'c', 'a', 'b', 'b'];
 
 const GREEN = ['terminal', 'terminal-crt'];
+const CRT   = ['terminal-crt', 'amber-crt', 'doogie-journal'];   // themes with the CRT look
 
 export class Eggs {
   private konamiPos = 0;
@@ -28,12 +29,13 @@ export class Eggs {
     return view && view.editor.hasFocus() ? view.editor : null;
   }
 
-  // Konami code: amber CRT. Works from terminal (with or without CRT), as in Tree, and from Doogie.
+  // Konami code: amber CRT. Needs the CRT look on (terminal crt, or Doogie). Stricter than Tree,
+  // where plain terminal is enough: in the plugin, amber is deliberately unlocked only from CRT.
   private konami(e: KeyboardEvent) {
     if (e.key !== KONAMI[this.konamiPos]) { this.konamiPos = e.key === KONAMI[0] ? 1 : 0; return; }
     if (++this.konamiPos < KONAMI.length) return;
     this.konamiPos = 0;
-    if (![...GREEN, 'amber-crt', 'doogie-journal'].includes(this.theme)) return;
+    if (!CRT.includes(this.theme)) return;
 
     // Erase the 'ba' that was typed into the note during the sequence
     const ed = this.editor();
@@ -41,13 +43,13 @@ export class Eggs {
       const cur = ed.getCursor();
       if (cur.ch >= 2 && ed.getRange({ line: cur.line, ch: cur.ch - 2 }, cur) === 'ba') ed.replaceRange('', { line: cur.line, ch: cur.ch - 2 }, cur);
     }
-    if (this.theme === 'amber-crt') void this.switchTo(this.plugin.settings.secretReturn || 'terminal', 'back to green.');
+    if (this.theme === 'amber-crt') void this.switchTo(this.plugin.settings.secretReturn || 'terminal-crt', 'back to green.');
     else void this.switchTo('amber-crt', 'amber mode. you found it.');
   }
 
   // ABACABB: Doogie Journal. Typed on its own line, only with the CRT look on (terminal crt, or amber).
   private abacabb(e: KeyboardEvent) {
-    if (!['terminal-crt', 'amber-crt', 'doogie-journal'].includes(this.theme)) { this.doogiePos = 0; return; }
+    if (!CRT.includes(this.theme)) { this.doogiePos = 0; return; }
     if (e.key.length !== 1) return;
     const key = e.key.toLowerCase();
     const ed = this.editor();
