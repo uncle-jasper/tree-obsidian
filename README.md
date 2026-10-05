@@ -13,6 +13,7 @@ The writing feel of [Tree](https://github.com/uncle-jasper/tree), a distraction-
 - **Zen mode.** Fades everything except the sentence or paragraph you're writing.
 - **Typewriter mode.** Keeps the line you're typing in the middle of the screen.
 - **Just Write.** Cmd+Shift+J locks the look for 30 minutes, or until you've written 500 words.
+- **Send to WordPress.** Sends the note to your blog as a draft, from the command palette or the note's … menu. It goes as Reading view shows it, so `%%comments%%` and properties stay behind. Set your site and an application password in Tree's settings.
 - **Small things.** Tab jumps past closing `**`, `*`, `~~`, `==`, `` ` `` and `]]`. Double-click a word to see how often it appears. Writing lines are 68 characters wide, with Tree's 1.8 line spacing.
 
 Try the Konami code in terminal crt for something extra.
@@ -25,7 +26,7 @@ Not in the community plugin list yet, so install by hand:
 2. Copy those three files into `<your vault>/.obsidian/plugins/tree-writer/`.
 3. In Obsidian, go to **Settings → Community plugins** and turn on **Tree**.
 
-Works best with Obsidian's default theme underneath.
+Needs Obsidian 1.11.4 or later. Works best with Obsidian's default theme underneath.
 
 ## Build
 
