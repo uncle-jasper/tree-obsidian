@@ -6,7 +6,8 @@ The writing feel of [Tree](https://github.com/uncle-jasper/tree), a distraction-
 
 - **Themes.** Tree's palettes, plus two custom themes built from three colors you pick.
 - **Fonts.** iA Writer Mono, Duo and Quattro, JetBrains Mono, Inconsolata, Geist, and a couple of retro faces. They're built in, so they work on iPad too.
-- **Status line.** Word and character count, reading time and cursor position, plus Tree's little typed-out messages and word milestones.
+- **Status line.** Word and character count, reading time and cursor position, plus Tree's little typed-out messages and word milestones. Obsidian's own status bar tucks away behind a faint ⋯ at the right end.
+- **Word goal.** Click the word count (or Ctrl+Shift+W on Mac) and type a number. Progress shows as "200 / 500 words", with a thin line filling along the bottom.
 - **Aa panel.** Tap the Aa in the status line to change theme, font, size, zen and typewriter without opening settings.
 - **Focus mode.** Hides all of Obsidian's interface and leaves just the page. Escape, or the faint corner mark, brings it back.
 - **Zen mode.** Fades everything except the sentence or paragraph you're writing.
