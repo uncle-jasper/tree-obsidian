@@ -66,5 +66,12 @@ export class JustWrite {
       const path = leaf.view instanceof MarkdownView ? leaf.view.file?.path : undefined;
       header?.toggleClass('tree-just-write-tab', on && path === this.state?.path);
     });
+    // If Tree's settings page is open, redraw it so the locked controls grey out or come back now
+    if (this.locked !== on) {
+      this.locked = on;
+      if (this.plugin.settingTab?.containerEl.isConnected) this.plugin.settingTab.display();
+    }
   }
+
+  private locked = false;
 }

@@ -15,6 +15,7 @@ export default class TreePlugin extends Plugin {
   status!: StatusLine;
   quick!: QuickPanel;
   justWrite!: JustWrite;
+  settingTab!: TreeSettingTab;
   focusActive = false;
   private exitEl: HTMLElement | null = null;
   private refreshQueued = false;
@@ -33,7 +34,8 @@ export default class TreePlugin extends Plugin {
       onSetGoal: target => this.setGoal(target),
       onPeekObsidian: on => this.peekObsidian(on),
     });
-    this.addSettingTab(new TreeSettingTab(this.app, this));
+    this.settingTab = new TreeSettingTab(this.app, this);
+    this.addSettingTab(this.settingTab);
 
     // Status line follows the active note
     this.registerEvent(this.app.workspace.on('active-leaf-change', () => this.attachStatus()));
