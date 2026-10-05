@@ -155,8 +155,9 @@ body.tree-focus .tree-focus-exit { display: flex; }
 .tree-zen-dim,
 .markdown-source-view.mod-cm6 .cm-line.tree-zen-dim-line { opacity: 0.3; transition: opacity 0.15s; }
 
-/* ── Typewriter: room above and below so the first and last lines can sit mid-screen ── */
+/* ── Typewriter: room below so the line you're writing can sit mid-screen right to the end.
+      (No room above, unlike Tree: in Obsidian the title and properties sit above the text,
+      and top padding opened a gap between them and the first line.) ── */
 body.tree-typewriter .markdown-source-view.mod-cm6 .cm-content {
-  padding-top: 40vh !important;
   padding-bottom: 50vh !important;
 }
