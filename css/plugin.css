@@ -133,6 +133,24 @@ body > .tree-quick {
 }
 .tree-quick button:hover { background: var(--background-modifier-hover); }
 .tree-quick .tree-quick-arrow { color: var(--text-muted); }
+.tree-quick .tree-quick-value.is-active { background: var(--background-modifier-hover); }
+
+/* The list a row opens when you click its name */
+.tree-quick-list {
+  display: flex;
+  flex-direction: column;
+  max-height: 40vh;
+  overflow-y: auto;
+  margin: 2px 0 6px 6.5em;
+  padding-left: 8px;
+  border-left: 1px solid var(--background-modifier-border);
+}
+.tree-quick .tree-quick-item {
+  text-align: left;
+  color: var(--text-muted);
+}
+.tree-quick .tree-quick-item.is-current { color: var(--text-normal); }
+.tree-quick .tree-quick-item.is-current::before { content: '· '; }
 
 /* Exit glyph, for when there's no Escape key (iPad without keyboard) */
 .tree-focus-exit {
