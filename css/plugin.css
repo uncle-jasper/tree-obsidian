@@ -179,3 +179,7 @@ body.tree-focus .tree-focus-exit { display: flex; }
 body.tree-typewriter .markdown-source-view.mod-cm6 .cm-content {
   padding-bottom: 50vh !important;
 }
+
+/* ── Just Write: the look is locked (Tree hides its quick settings), and the note's tab goes italic ── */
+body.tree-just-write .tree-quick-toggle { display: none; }
+.workspace-tab-header.tree-just-write-tab .workspace-tab-header-inner-title { font-style: italic; }

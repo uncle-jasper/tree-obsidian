@@ -5,12 +5,14 @@ import { DEFAULT_SETTINGS, THEMES, TreeSettings, TreeSettingTab } from './settin
 import { StatusLine } from './status';
 import { QuickPanel } from './quick';
 import { CUSTOM_VARS, customPalette } from './custom';
+import { JustWrite } from './justwrite';
 import { tabOutExtension, typewriterExtension, zenExtension } from './editor';
 
 export default class TreePlugin extends Plugin {
   settings!: TreeSettings;
   status!: StatusLine;
   quick!: QuickPanel;
+  justWrite!: JustWrite;
   focusActive = false;
   private exitEl: HTMLElement | null = null;
   private refreshQueued = false;
@@ -21,12 +23,13 @@ export default class TreePlugin extends Plugin {
     this.applyAppearance();
 
     this.quick  = new QuickPanel(this);
+    this.justWrite = new JustWrite(this);
     this.status = new StatusLine(() => this.settings, anchor => this.quick.toggle(anchor));
     this.addSettingTab(new TreeSettingTab(this.app, this));
 
     // Status line follows the active note
     this.registerEvent(this.app.workspace.on('active-leaf-change', () => this.attachStatus()));
-    this.registerEvent(this.app.workspace.on('layout-change', () => this.attachStatus()));
+    this.registerEvent(this.app.workspace.on('layout-change', () => { this.attachStatus(); this.justWrite.apply(); }));
     // Make sure the editor draws its own cursor (so Tree's cursor styles apply), blinking at Tree's 1s rate
     this.registerEditorExtension(drawSelection({ cursorBlinkRate: 1000 }));
     this.registerEditorExtension([zenExtension(() => this.settings), typewriterExtension(() => this.settings), tabOutExtension(() => this.settings)]);
@@ -50,12 +53,18 @@ export default class TreePlugin extends Plugin {
 
     this.app.workspace.onLayoutReady(() => {
       this.attachStatus();
+      this.justWrite.resume();
       window.setTimeout(() => this.status.welcome(), 800);
     });
 
     // Focus mode
     this.addCommand({ id: 'toggle-focus', name: 'Toggle focus mode', callback: () => this.toggleFocus() });
-    this.addCommand({ id: 'quick-style', name: 'Change theme and font', callback: () => this.quick.toggle(this.status.el.isConnected ? this.status.el : document.body) });
+    this.addCommand({ id: 'quick-style', name: 'Change theme and font', callback: () => {
+      if (this.justWrite.active) return;   // the look is locked during Just Write
+      this.quick.toggle(this.status.el.isConnected ? this.status.el : document.body);
+    } });
+    this.addCommand({ id: 'just-write', name: 'Just Write (30 minutes or 500 words)', hotkeys: [{ modifiers: ['Mod', 'Shift'], key: 'J' }],
+      callback: () => this.justWrite.start() });
     this.addCommand({ id: 'toggle-zen', name: 'Toggle zen mode', callback: () => this.toggleZen() });
     this.addCommand({ id: 'cycle-zen', name: 'Switch zen mode between sentence and paragraph', callback: () => this.cycleZenGranularity() });
     this.addCommand({ id: 'toggle-typewriter', name: 'Toggle typewriter mode', callback: () => this.toggleTypewriter() });
@@ -79,7 +88,7 @@ export default class TreePlugin extends Plugin {
     this.quick.close();
     this.status.destroy();
     this.exitEl?.remove();
-    document.body.removeClass('tree-focus', 'tree-typewriter', 'tree-font-on', 'tree-size-on', ...this.themeClasses());
+    document.body.removeClass('tree-focus', 'tree-typewriter', 'tree-just-write', 'tree-font-on', 'tree-size-on', ...this.themeClasses());
     document.body.style.removeProperty('--tree-font');
     document.body.style.removeProperty('--tree-font-size');
     document.body.style.removeProperty('--tree-line-length');
@@ -135,7 +144,9 @@ export default class TreePlugin extends Plugin {
       this.refreshQueued = false;
       const edited = this.editQueued;
       this.editQueued = false;
-      this.status.refresh(this.app.workspace.getActiveViewOfType(MarkdownView), edited);
+      const view = this.app.workspace.getActiveViewOfType(MarkdownView);
+      this.status.refresh(view, edited);
+      if (edited) this.justWrite.checkRelease(view);
     });
   }
 

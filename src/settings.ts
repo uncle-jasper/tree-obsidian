@@ -1,6 +1,7 @@
 import { App, PluginSettingTab, Setting } from 'obsidian';
 import type TreePlugin from './main';
 import type { CustomColors } from './custom';
+import type { JustWriteState } from './justwrite';
 
 export interface TreeSettings {
   theme: string;        // '' = leave Obsidian's theme alone
@@ -16,6 +17,7 @@ export interface TreeSettings {
   zenGranularity: 'sentence' | 'paragraph';
   typewriter: boolean;
   tabOut: boolean;
+  justWrite: JustWriteState | null;
   custom: CustomColors;
   custom2: CustomColors;
 }
@@ -34,6 +36,7 @@ export const DEFAULT_SETTINGS: TreeSettings = {
   zenGranularity: 'sentence',
   typewriter: false,
   tabOut: true,
+  justWrite: null,
   custom:  { bg: '#f5f0e8', text: '#2c2416', accent: '#8b6e4e' },   // Tree's defaults
   custom2: { bg: '#f5f0e8', text: '#2c2416', accent: '#8b6e4e' },
 };
@@ -83,25 +86,28 @@ export class TreeSettingTab extends PluginSettingTab {
     const save = async () => { await this.plugin.saveSettings(); };
     containerEl.empty();
 
+    const locked = this.plugin.justWrite.active;
+
     new Setting(containerEl).setName('Appearance').setHeading();
+    if (locked) containerEl.createEl('p', { cls: 'setting-item-description', text: 'Locked during Just Write. Write 500 words, or wait out the 30 minutes.' });
 
     new Setting(containerEl)
       .setName('Theme')
       .setDesc('Tree palette. Works best with Obsidian\'s default theme underneath.')
-      .addDropdown(d => d.addOptions(THEMES).setValue(s.theme)
+      .addDropdown(d => d.addOptions(THEMES).setValue(s.theme).setDisabled(locked)
         .onChange(async v => { s.theme = v; await save(); }));
 
     new Setting(containerEl)
       .setName('Font')
       .setDesc('Editor and reading view only. Fonts are built in, so they work on iPad too.')
-      .addDropdown(d => d.addOptions(FONTS).setValue(s.font)
+      .addDropdown(d => d.addOptions(FONTS).setValue(s.font).setDisabled(locked)
         .onChange(async v => { s.font = v; await save(); }));
 
     new Setting(containerEl)
       .setName('Font size')
       .addDropdown(d => {
         SIZES.forEach(n => d.addOption(String(n), n ? n + 'px' : 'Obsidian default'));
-        d.setValue(String(s.fontSize)).onChange(async v => { s.fontSize = Number(v); await save(); });
+        d.setValue(String(s.fontSize)).setDisabled(locked).onChange(async v => { s.fontSize = Number(v); await save(); });
       });
 
     for (const [key, name] of [['custom', 'Custom'], ['custom2', 'Custom 2']] as const) {
@@ -111,7 +117,7 @@ export class TreeSettingTab extends PluginSettingTab {
         new Setting(containerEl)
           .setName(label)
           .setDesc(part === 'bg' ? 'Surfaces, borders and muted text are worked out from these three, as in Tree.' : '')
-          .addColorPicker(c => c.setValue(colors[part]).onChange(async v => {
+          .addColorPicker(c => c.setValue(colors[part]).setDisabled(locked).onChange(async v => {
             colors[part] = v;
             if (s.theme !== key) { s.theme = key; this.display(); }   // picking a color switches to that theme
             await save();

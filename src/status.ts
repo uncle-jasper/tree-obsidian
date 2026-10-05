@@ -34,7 +34,7 @@ const IDLE_MS = 3 * 60 * 1000;
 
 const pick = (list: string[]) => list[Math.floor(Math.random() * list.length)];
 
-const countWords = (s: string) => (s.trim() === '' ? 0 : s.trim().split(/\s+/).filter(Boolean).length);
+export const countWords = (s: string) => (s.trim() === '' ? 0 : s.trim().split(/\s+/).filter(Boolean).length);
 const plural = (n: number, word: string) => n + ' ' + word + (n !== 1 ? 's' : '');
 
 // One status line, moved to whichever markdown leaf is active.
@@ -52,6 +52,7 @@ export class StatusLine {
   private lastWords = 0;
   private reached = new Set<number>();
   private idleTimer = 0;
+  private pending: string | null = null;   // an important message waiting for the current one to finish
 
   constructor(private getSettings: () => TreeSettings, onQuick: (anchor: HTMLElement) => void) {
     this.el = createDiv({ cls: 'tree-status' });
@@ -63,7 +64,7 @@ export class StatusLine {
     const right = this.el.createDiv({ cls: 'tree-stat-right' });
     this.cursor = right.createSpan();
     const quick = right.createSpan({ cls: 'tree-quick-toggle', text: 'Aa', attr: { 'aria-label': 'Theme and font' } });
-    quick.onclick = () => onQuick(this.el);
+    quick.onclick = () => { if (!document.body.hasClass('tree-just-write')) onQuick(this.el); };
   }
 
   attach(view: MarkdownView | null) {
@@ -143,12 +144,15 @@ export class StatusLine {
       this.busy = false;
       this.el.removeClass('is-talking');
       this.centre.removeClass('is-hidden');
+      if (this.pending) { const next = this.pending; this.pending = null; this.typeMessage(next, true); }
     }, 500);
   }
 
   // Ported from Tree's typeStatusMessage(): type it out, hold, fade.
-  typeMessage(text: string) {
-    if (this.busy || !this.getSettings().statusMessages || !this.el.isConnected) return;
+  // important = always shown (Just Write), even with status messages off, and queued if one is already playing
+  typeMessage(text: string, important = false) {
+    if (!this.el.isConnected || (!important && !this.getSettings().statusMessages)) return;
+    if (this.busy) { if (important) this.pending = text; return; }
     this.busy = true;
     this.el.addClass('is-talking');
     this.centre.addClass('is-hidden');
