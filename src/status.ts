@@ -160,7 +160,7 @@ export class StatusLine {
     const goal = s.goal && s.goal.path === path ? s.goal : null;
     if (goal) {
       const session = Math.max(0, words - goal.baseline);
-      this.centre.setText(session + ' / ' + fmtGoal(goal.target));
+      this.centre.setText(session + ' / ' + fmtGoal(goal.target) + ' words');
       this.goalBar.style.width = Math.min(100, (session / goal.target) * 100) + '%';
     } else {
       const mins = Math.ceil(words / 200);
