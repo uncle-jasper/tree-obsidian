@@ -56,15 +56,17 @@ export class StatusLine {
 
   constructor(private getSettings: () => TreeSettings, onQuick: (anchor: HTMLElement) => void) {
     this.el = createDiv({ cls: 'tree-status' });
+    // Unlike Tree: the Aa control has the left end to itself (and stays clear of Obsidian's bar
+    // in the bottom-right corner); the counts sit together on the right, apart from the button.
     const left = this.el.createDiv({ cls: 'tree-stat-left' });
-    // Aa sits at the left end: the bottom-right corner belongs to Obsidian's own status bar
     const quick = left.createSpan({ cls: 'tree-quick-toggle', text: 'Aa', attr: { 'aria-label': 'Theme and font' } });
     quick.onclick = () => { if (!document.body.hasClass('tree-just-write')) onQuick(this.el); };
-    this.words  = left.createSpan();
-    this.chars  = left.createSpan();
     this.centre = this.el.createDiv({ cls: 'tree-stat-centre' });
     this.msg    = this.el.createDiv({ cls: 'tree-stat-msg' });
-    this.cursor = this.el.createDiv({ cls: 'tree-stat-right' }).createSpan();
+    const right = this.el.createDiv({ cls: 'tree-stat-right' });
+    this.words  = right.createSpan();
+    this.chars  = right.createSpan();
+    this.cursor = right.createSpan();
   }
 
   attach(view: MarkdownView | null) {
