@@ -223,3 +223,7 @@ body.tree-typewriter .markdown-source-view.mod-cm6 .cm-content {
 /* ── Just Write: the look is locked (Tree hides its quick settings), and the note's tab goes italic ── */
 body.tree-just-write .tree-quick-toggle { display: none; }
 .workspace-tab-header.tree-just-write-tab .workspace-tab-header-inner-title { font-style: italic; }
+
+/* ── WordPress confirm, in Tree's lowercase voice ── */
+.tree-wp-confirm p { margin-top: 0; }
+.tree-wp-confirm .setting-item { border-top: none; padding-bottom: 0; }

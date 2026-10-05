@@ -7,6 +7,7 @@ import { QuickPanel } from './quick';
 import { CUSTOM_VARS, customPalette } from './custom';
 import { JustWrite } from './justwrite';
 import { Eggs } from './eggs';
+import { WordPress } from './wordpress';
 import { tabOutExtension, typewriterExtension, zenExtension } from './editor';
 
 export default class TreePlugin extends Plugin {
@@ -26,6 +27,7 @@ export default class TreePlugin extends Plugin {
     this.quick  = new QuickPanel(this);
     this.justWrite = new JustWrite(this);
     new Eggs(this).register();
+    new WordPress(this).register();
     this.status = new StatusLine(() => this.settings, {
       onQuick: anchor => this.quick.toggle(anchor),
       onSetGoal: target => this.setGoal(target),

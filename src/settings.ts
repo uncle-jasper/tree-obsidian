@@ -3,6 +3,7 @@ import type TreePlugin from './main';
 import type { CustomColors } from './custom';
 import type { JustWriteState } from './justwrite';
 import type { WordGoal } from './status';
+import { WP_SECRET_ID } from './wordpress';
 
 export interface TreeSettings {
   theme: string;        // '' = leave Obsidian's theme alone
@@ -21,6 +22,8 @@ export interface TreeSettings {
   tabOut: boolean;
   justWrite: JustWriteState | null;
   goal: WordGoal | null;
+  wpUrl: string;
+  wpUser: string;   // the application password lives in Obsidian's secure storage, not here
   secretReturn: string;   // the terminal theme to go "back to green" to
   custom: CustomColors;
   custom2: CustomColors;
@@ -43,6 +46,8 @@ export const DEFAULT_SETTINGS: TreeSettings = {
   tabOut: true,
   justWrite: null,
   goal: null,
+  wpUrl: '',
+  wpUser: '',
   secretReturn: 'terminal',
   custom:  { bg: '#f5f0e8', text: '#2c2416', accent: '#8b6e4e' },   // Tree's defaults
   custom2: { bg: '#f5f0e8', text: '#2c2416', accent: '#8b6e4e' },
@@ -200,6 +205,30 @@ export class TreeSettingTab extends PluginSettingTab {
       .setDesc('With the cursor just before closing **, *, ***, ~~, ==, ` or ]], Tab jumps past them, as in Tree. Everywhere else Tab works as usual.')
       .addToggle(t => t.setValue(s.tabOut)
         .onChange(async v => { s.tabOut = v; await save(); }));
+
+    new Setting(containerEl).setName('WordPress').setHeading();
+    containerEl.createEl('p', { cls: 'setting-item-description', text:
+      'For "Send to WordPress as draft" (command palette, or a note\'s … menu). Create an application password in WordPress under Users → Profile.' });
+
+    new Setting(containerEl)
+      .setName('Site URL')
+      .addText(t => t.setPlaceholder('https://yoursite.com').setValue(s.wpUrl)
+        .onChange(async v => { s.wpUrl = v.trim(); await save(); }));
+
+    new Setting(containerEl)
+      .setName('Username')
+      .addText(t => t.setValue(s.wpUser)
+        .onChange(async v => { s.wpUser = v.trim(); await save(); }));
+
+    const hasPassword = !!this.app.secretStorage.getSecret(WP_SECRET_ID);
+    new Setting(containerEl)
+      .setName('Application password')
+      .setDesc('Kept in your device\'s secure storage, not in your vault, so it doesn\'t sync. Enter it once on each device.')
+      .addText(t => {
+        t.inputEl.type = 'password';
+        t.setPlaceholder(hasPassword ? 'saved' : 'xxxx xxxx xxxx xxxx xxxx xxxx')
+          .onChange(v => this.app.secretStorage.setSecret(WP_SECRET_ID, v.trim()));
+      });
 
     new Setting(containerEl).setName('Writing column').setHeading();
 
