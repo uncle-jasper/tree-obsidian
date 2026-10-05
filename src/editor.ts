@@ -1,6 +1,6 @@
 // Zen mode (sentence / paragraph dimming) and typewriter scrolling, ported from Tree's CodeMirror plugins.
-import { Decoration, DecorationSet, EditorView, ViewPlugin, ViewUpdate } from '@codemirror/view';
-import { EditorState, RangeSetBuilder, Transaction } from '@codemirror/state';
+import { Decoration, DecorationSet, EditorView, ViewPlugin, ViewUpdate, keymap } from '@codemirror/view';
+import { EditorSelection, EditorState, Prec, RangeSetBuilder, Transaction } from '@codemirror/state';
 import type { TreeSettings } from './settings';
 
 const zenDimMark  = Decoration.mark({ class: 'tree-zen-dim' });
@@ -143,4 +143,26 @@ export function typewriterExtension(getSettings: () => TreeSettings) {
   });
 
   return [centerOnInput, centerOnToggle];
+}
+
+// Tab jumps past closing ***, **, ~~ or * (Tree's Tab handler). Anywhere else it returns false,
+// so Obsidian's own Tab (indent, etc.) carries on as normal. Unlike Tree, the marks must follow
+// text, i.e. be closing marks, so Tab at the start of "- **bold**" still indents the list item.
+export function tabOutExtension(getSettings: () => TreeSettings) {
+  return Prec.highest(keymap.of([{
+    key: 'Tab',
+    run: view => {
+      if (!getSettings().tabOut) return false;
+      const { state } = view;
+      const { from, to } = state.selection.main;
+      if (from !== to || state.selection.ranges.length > 1) return false;
+      const before = state.sliceDoc(Math.max(0, from - 1), from);
+      if (before === '' || /\s/.test(before)) return false;
+      const ahead = state.sliceDoc(from, Math.min(state.doc.length, from + 3));
+      const skip = ahead.startsWith('***') ? 3 : (ahead.startsWith('**') || ahead.startsWith('~~')) ? 2 : ahead.startsWith('*') ? 1 : 0;
+      if (!skip) return false;
+      view.dispatch({ selection: EditorSelection.cursor(from + skip), userEvent: 'select' });
+      return true;
+    },
+  }]));
 }

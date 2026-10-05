@@ -15,6 +15,7 @@ export interface TreeSettings {
   zen: boolean;
   zenGranularity: 'sentence' | 'paragraph';
   typewriter: boolean;
+  tabOut: boolean;
   custom: CustomColors;
   custom2: CustomColors;
 }
@@ -32,6 +33,7 @@ export const DEFAULT_SETTINGS: TreeSettings = {
   zen: false,
   zenGranularity: 'sentence',
   typewriter: false,
+  tabOut: true,
   custom:  { bg: '#f5f0e8', text: '#2c2416', accent: '#8b6e4e' },   // Tree's defaults
   custom2: { bg: '#f5f0e8', text: '#2c2416', accent: '#8b6e4e' },
 };
@@ -164,6 +166,12 @@ export class TreeSettingTab extends PluginSettingTab {
       .setDesc('Keeps the line you\'re typing in the middle of the screen.')
       .addToggle(t => t.setValue(s.typewriter)
         .onChange(async v => { s.typewriter = v; await save(); }));
+
+    new Setting(containerEl)
+      .setName('Tab out of formatting')
+      .setDesc('With the cursor just before closing **, *, *** or ~~, Tab jumps past them, as in Tree. Everywhere else Tab works as usual.')
+      .addToggle(t => t.setValue(s.tabOut)
+        .onChange(async v => { s.tabOut = v; await save(); }));
 
     new Setting(containerEl).setName('Writing column').setHeading();
 

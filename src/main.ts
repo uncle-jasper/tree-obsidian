@@ -4,7 +4,7 @@ import { DEFAULT_SETTINGS, THEMES, TreeSettings, TreeSettingTab } from './settin
 import { StatusLine } from './status';
 import { QuickPanel } from './quick';
 import { CUSTOM_VARS, customPalette } from './custom';
-import { typewriterExtension, zenExtension } from './editor';
+import { tabOutExtension, typewriterExtension, zenExtension } from './editor';
 
 export default class TreePlugin extends Plugin {
   settings!: TreeSettings;
@@ -27,7 +27,7 @@ export default class TreePlugin extends Plugin {
     this.registerEvent(this.app.workspace.on('layout-change', () => this.attachStatus()));
     // Make sure the editor draws its own cursor (so Tree's cursor styles apply), blinking at Tree's 1s rate
     this.registerEditorExtension(drawSelection({ cursorBlinkRate: 1000 }));
-    this.registerEditorExtension([zenExtension(() => this.settings), typewriterExtension(() => this.settings)]);
+    this.registerEditorExtension([zenExtension(() => this.settings), typewriterExtension(() => this.settings), tabOutExtension(() => this.settings)]);
     this.registerEditorExtension(EditorView.updateListener.of(u => {
       if (u.docChanged || u.selectionSet) this.queueRefresh();
     }));
