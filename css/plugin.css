@@ -55,9 +55,10 @@ body.tree-hide-obsidian-status.tree-obsidian-peek .status-bar {
   opacity: 1;
   pointer-events: auto;
 }
-.tree-obsidian-peek { display: none; cursor: default; opacity: 0.5; padding: 0 2px; transition: opacity 0.2s; }
-.tree-obsidian-peek:hover { opacity: 1; color: var(--text-normal); }
-body.tree-hide-obsidian-status:not(.is-mobile):not(.tree-focus) .tree-obsidian-peek { display: inline; }
+/* (the ⋯ is .tree-peek-toggle; body.tree-obsidian-peek is the "bar is up" state, so the names must differ) */
+.tree-peek-toggle { display: none; cursor: default; opacity: 0.5; padding: 0 2px; transition: opacity 0.2s; }
+.tree-peek-toggle:hover { opacity: 1; color: var(--text-normal); }
+body.tree-hide-obsidian-status:not(.is-mobile):not(.tree-focus) .tree-peek-toggle { display: inline; }
 
 /* ── Word goal: click the word count to set one; progress shows in the middle and along the bottom edge ── */
 .tree-stat-words { cursor: pointer; transition: color 0.2s; }

@@ -87,7 +87,7 @@ export class StatusLine {
     this.words.onclick = () => this.editGoal();
     this.chars  = right.createSpan();
     this.cursor = right.createSpan();
-    const peek  = right.createSpan({ cls: 'tree-obsidian-peek', text: '⋯', attr: { 'aria-label': 'Obsidian status bar' } });
+    const peek  = right.createSpan({ cls: 'tree-peek-toggle', text: '⋯', attr: { 'aria-label': 'Obsidian status bar' } });
     peek.onmouseenter = () => hooks.onPeekObsidian(true);
     peek.onmouseleave = () => hooks.onPeekObsidian(false);
     // Tree's goal progress line along the bottom edge
