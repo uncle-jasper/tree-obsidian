@@ -1,5 +1,6 @@
 import { MarkdownView, Plugin, setIcon } from 'obsidian';
 import { EditorView, drawSelection } from '@codemirror/view';
+import { Transaction } from '@codemirror/state';
 import { DEFAULT_SETTINGS, THEMES, TreeSettings, TreeSettingTab } from './settings';
 import { StatusLine } from './status';
 import { QuickPanel } from './quick';
@@ -13,6 +14,7 @@ export default class TreePlugin extends Plugin {
   focusActive = false;
   private exitEl: HTMLElement | null = null;
   private refreshQueued = false;
+  private editQueued = false;
 
   async onload() {
     await this.loadSettings();
@@ -29,8 +31,22 @@ export default class TreePlugin extends Plugin {
     this.registerEditorExtension(drawSelection({ cursorBlinkRate: 1000 }));
     this.registerEditorExtension([zenExtension(() => this.settings), typewriterExtension(() => this.settings), tabOutExtension(() => this.settings)]);
     this.registerEditorExtension(EditorView.updateListener.of(u => {
-      if (u.docChanged || u.selectionSet) this.queueRefresh();
+      if (!(u.docChanged || u.selectionSet)) return;
+      // Only your own typing counts toward milestones and idle nudges, not sync or other plugins
+      if (u.docChanged && u.transactions.some(tr => tr.annotation(Transaction.userEvent) !== undefined)) this.editQueued = true;
+      this.queueRefresh();
     }));
+
+    // Word frequency: double-click a word to see how often it appears in the note (Tree's dblclick)
+    this.registerDomEvent(document, 'dblclick', (e: MouseEvent) => {
+      const view = this.app.workspace.getActiveViewOfType(MarkdownView);
+      if (!view || !(e.target as HTMLElement).closest('.markdown-source-view')) return;
+      const sel = view.editor.getSelection().trim().toLowerCase();
+      if (!sel || /\s/.test(sel)) return;
+      const escaped = sel.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+      const count = (view.editor.getValue().toLowerCase().match(new RegExp('\\b' + escaped + '\\b', 'g')) || []).length;
+      if (count > 0) this.status.showWordCount(sel, count);
+    });
 
     this.app.workspace.onLayoutReady(() => {
       this.attachStatus();
@@ -117,7 +133,9 @@ export default class TreePlugin extends Plugin {
     this.refreshQueued = true;
     requestAnimationFrame(() => {
       this.refreshQueued = false;
-      this.status.refresh(this.app.workspace.getActiveViewOfType(MarkdownView));
+      const edited = this.editQueued;
+      this.editQueued = false;
+      this.status.refresh(this.app.workspace.getActiveViewOfType(MarkdownView), edited);
     });
   }
 
