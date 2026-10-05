@@ -21,7 +21,8 @@ body.tree-size-on .workspace-leaf-content[data-type="markdown"] {
   position: relative;
   flex-shrink: 0;
   padding: 5px 16px;
-  padding-bottom: calc(5px + env(safe-area-inset-bottom, 0px));
+  /* iPad: leave some room above the home indicator, but not its full inset (that made the line twice as tall) */
+  padding-bottom: max(5px, calc(env(safe-area-inset-bottom, 0px) / 2));
   background: var(--background-secondary);
   border-top: 1px solid var(--background-modifier-border);
   font-family: 'Tree JetBrains Mono', monospace;
