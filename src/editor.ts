@@ -1,6 +1,6 @@
 // Zen mode (sentence / paragraph dimming) and typewriter scrolling, ported from Tree's CodeMirror plugins.
 import { Decoration, DecorationSet, EditorView, ViewPlugin, ViewUpdate } from '@codemirror/view';
-import { EditorState, RangeSetBuilder } from '@codemirror/state';
+import { EditorState, RangeSetBuilder, Transaction } from '@codemirror/state';
 import type { TreeSettings } from './settings';
 
 const zenDimMark  = Decoration.mark({ class: 'tree-zen-dim' });
@@ -119,20 +119,28 @@ export function zenExtension(getSettings: () => TreeSettings) {
 }
 
 // Keeps the cursor line centered while you type or move with the keyboard.
-// Clicks and drag-selects are left alone so the page doesn't jump under the mouse.
+// The centering rides along on the keystroke's own transaction, so CodeMirror scrolls once,
+// in the same redraw. (Scrolling afterwards, as Tree does, makes Obsidian paint twice and flash.)
+// Clicks and drag-selects are left alone so the page doesn't jump under the mouse, and changes
+// that don't come from you (sync, other plugins) don't yank the view around.
 export function typewriterExtension(getSettings: () => TreeSettings) {
-  return ViewPlugin.fromClass(class {
+  const centerOnInput = EditorState.transactionExtender.of(tr => {
+    if (!getSettings().typewriter || !(tr.docChanged || tr.selection)) return null;
+    if (tr.annotation(Transaction.userEvent) === undefined || tr.isUserEvent('select.pointer')) return null;
+    return { effects: EditorView.scrollIntoView(tr.newSelection.main.head, { y: 'center' }) };
+  });
+
+  // When typewriter is switched on (editors get reconfigured), center once right away
+  const centerOnToggle = ViewPlugin.fromClass(class {
     update(u: ViewUpdate) {
-      // reconfigured = a Tree setting just changed (e.g. typewriter switched on), so center right away
-      const reconfigured = u.transactions.some(tr => tr.reconfigured);
-      if (!getSettings().typewriter || !(u.docChanged || u.selectionSet || reconfigured)) return;
-      if (u.transactions.some(tr => tr.isUserEvent('select.pointer'))) return;
+      if (!getSettings().typewriter || !u.transactions.some(tr => tr.reconfigured)) return;
       const view = u.view;
-      // After CodeMirror's own DOM update, as in Tree's applyTypewriterScroll()
       window.setTimeout(() => {
         if (!getSettings().typewriter || !view.dom.isConnected) return;
         view.dispatch({ effects: EditorView.scrollIntoView(view.state.selection.main.head, { y: 'center' }) });
       }, 0);
     }
   });
+
+  return [centerOnInput, centerOnToggle];
 }
