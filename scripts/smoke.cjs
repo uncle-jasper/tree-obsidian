@@ -1,0 +1,11 @@
+// Loads main.js against a stub Obsidian so load-time crashes fail the build instead of Obsidian.
+const Module = require('module');
+const orig = Module._load;
+Module._load = (req, ...rest) => {
+  if (req === 'obsidian') return { Plugin: class {}, PluginSettingTab: class {}, Setting: class {}, MarkdownView: class {}, setIcon() {} };
+  if (req === '@codemirror/view') return { EditorView: { updateListener: { of() {} } }, drawSelection() {}, Decoration: { mark() {}, line() {} }, ViewPlugin: { fromClass() {} } };
+  if (req === '@codemirror/state') return { RangeSetBuilder: class {} };
+  return orig(req, ...rest);
+};
+if (typeof require('../main.js').default !== 'function') throw new Error('main.js has no default plugin export');
+console.log('main.js loads');

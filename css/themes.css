@@ -1,0 +1,237 @@
+/* ── Tree palettes (ported from obsidian-theme/Tree) ── */
+/* Each block sets: bg / surface / text / accent / muted / border, then
+   maps them onto Obsidian's documented CSS variables. */
+
+body.tree-theme-parchment,
+body.tree-theme-dark,
+body.tree-theme-moss,
+body.tree-theme-slate,
+body.tree-theme-paper,
+body.tree-theme-sage,
+body.tree-theme-ash,
+body.tree-theme-gameboy,
+body.tree-theme-moonwalker,
+body.tree-theme-terminal,
+body.tree-theme-terminal-crt,
+body.tree-theme-amber-crt,
+body.tree-theme-doogie-journal,
+body.tree-theme-custom,
+body.tree-theme-custom2 {
+  --background-primary: var(--tree-bg);
+  --background-primary-alt: var(--tree-bg);
+  --background-secondary: var(--tree-surface);
+  --background-secondary-alt: var(--tree-surface);
+  --background-modifier-border: var(--tree-border);
+  --background-modifier-border-hover: var(--tree-border);
+  --background-modifier-form-field: var(--tree-surface);
+  --titlebar-background: var(--tree-bg);
+  --titlebar-background-focused: var(--tree-bg);
+  --text-normal: var(--tree-text);
+  --text-muted: var(--tree-muted);
+  --text-faint: var(--tree-muted);
+  --text-accent: var(--tree-accent);
+  --text-accent-hover: var(--tree-accent);
+  --text-on-accent: var(--tree-on-accent);
+  --text-selection: var(--tree-selection);
+  --interactive-normal: var(--tree-surface);
+  --interactive-hover: var(--tree-border);
+  --interactive-accent: var(--tree-accent);
+  --interactive-accent-hover: var(--tree-accent);
+  --scrollbar-thumb-bg: var(--tree-border);
+  --scrollbar-active-thumb-bg: var(--tree-muted);
+}
+
+/* ── Tree's cursor (all Tree themes; the themes below override it with their own) ──
+   Accent-colored 2.5px bar, a touch taller than the line, with Tree's soft blink. */
+body[class*="tree-theme-"] .cm-cursor,
+body[class*="tree-theme-"] .cm-dropCursor {
+  border-left-color: var(--tree-accent) !important;
+  border-left-width: 2.5px !important;
+  transform: scaleY(1.2);
+  transform-origin: center center;
+}
+@keyframes tree-blink  { 0%, 40% { opacity: 1; animation-timing-function: linear; } 50% { opacity: 0; } 90% { opacity: 0; animation-timing-function: linear; } 100% { opacity: 1; } }
+@keyframes tree-blink2 { 0%, 40% { opacity: 1; animation-timing-function: linear; } 50% { opacity: 0; } 90% { opacity: 0; animation-timing-function: linear; } 100% { opacity: 1; } }
+/* CodeMirror swaps cm-blink/cm-blink2 inline to restart the blink on each keystroke; mirror that */
+body[class*="tree-theme-"] .cm-focused > .cm-scroller > .cm-cursorLayer[style*="cm-blink"] { animation-name: tree-blink !important; }
+body[class*="tree-theme-"] .cm-focused > .cm-scroller > .cm-cursorLayer[style*="cm-blink2"] { animation-name: tree-blink2 !important; }
+
+body.tree-theme-parchment {
+  --tree-bg: #f5f0e8; --tree-surface: #ede8de; --tree-text: #2c2416;
+  --tree-accent: #8b6e4e; --tree-muted: #a89880; --tree-border: #d4c8b4;
+  --tree-on-accent: #f5f0e8; --tree-selection: rgba(139,110,78,0.25);
+}
+
+body.tree-theme-dark {
+  --tree-bg: #1a1a1a; --tree-surface: #252525; --tree-text: #d8d8d8;
+  --tree-accent: #444444; --tree-muted: #555555; --tree-border: #2a2a2a;
+  --tree-on-accent: #d8d8d8; --tree-selection: rgba(100,120,220,0.4);
+}
+
+body.tree-theme-moss {
+  --tree-bg: #1e2420; --tree-surface: #242d28; --tree-text: #d4ddd0;
+  --tree-accent: #82b890; --tree-muted: #607860; --tree-border: #2e3d30;
+  --tree-on-accent: #1e2420; --tree-selection: rgba(130,184,144,0.25);
+}
+
+body.tree-theme-slate {
+  --tree-bg: #1c2333; --tree-surface: #232d40; --tree-text: #d0d8e8;
+  --tree-accent: #7a9fd4; --tree-muted: #5a7090; --tree-border: #2e3d54;
+  --tree-on-accent: #1c2333; --tree-selection: rgba(122,159,212,0.25);
+}
+
+body.tree-theme-paper {
+  --tree-bg: #f5f7fa; --tree-surface: #eceef2; --tree-text: #1a1d23;
+  --tree-accent: #4a6080; --tree-muted: #8a96a8; --tree-border: #d4d8e0;
+  --tree-on-accent: #f5f7fa; --tree-selection: rgba(74,96,128,0.25);
+}
+
+body.tree-theme-sage {
+  --tree-bg: #c4d9c4; --tree-surface: #b8cfb8; --tree-text: #162016;
+  --tree-accent: #3a6640; --tree-muted: #4a6050; --tree-border: #a0bfa0;
+  --tree-on-accent: #c4d9c4; --tree-selection: rgba(58,102,64,0.25);
+}
+
+body.tree-theme-ash {
+  --tree-bg: #b0b0b0; --tree-surface: #a4a4a4; --tree-text: #0e0e0e;
+  --tree-accent: #3a3a3a; --tree-muted: #555555; --tree-border: #909090;
+  --tree-on-accent: #b0b0b0; --tree-selection: rgba(80,80,160,0.35);
+}
+
+body.tree-theme-gameboy {
+  --tree-bg: #b5bd8e; --tree-surface: #a6ae80; --tree-text: #33422a;
+  --tree-accent: #5f6f47; --tree-muted: #7c8760; --tree-border: #96a072;
+  --tree-on-accent: #b5bd8e; --tree-selection: rgba(95,111,71,0.25);
+}
+body.tree-theme-gameboy .markdown-source-view.mod-cm6 .cm-content,
+body.tree-theme-gameboy .markdown-rendered,
+body.tree-theme-gameboy .tree-status { font-weight: 700; }
+
+body.tree-theme-moonwalker {
+  --tree-bg: #050709; --tree-surface: #0b0f14; --tree-text: #00defb;
+  --tree-accent: #0127dd; --tree-muted: #1a3fae; --tree-border: #0d1a4a;
+  --tree-on-accent: #050709; --tree-selection: rgba(1,39,221,0.35);
+}
+body.tree-theme-moonwalker .markdown-source-view.mod-cm6 .cm-content,
+body.tree-theme-moonwalker .markdown-rendered {
+  text-shadow: 0 0 1px rgba(220,250,255,1), 0 0 5px rgba(3,60,255,1), 0 0 14px rgba(3,60,255,1), 0 0 32px rgba(1,39,221,0.9);
+}
+body.tree-theme-moonwalker .tree-status {
+  color: var(--text-normal);
+  text-shadow: 0 0 1px rgba(220,250,255,1), 0 0 3px rgba(3,60,255,1), 0 0 7px rgba(1,39,221,0.6);
+}
+body.tree-theme-moonwalker .cm-cursor {
+  border-left: none !important;
+  width: 2px !important;
+  background-color: #00defb;
+  box-shadow: 0 0 1px rgba(220,250,255,1), 0 0 5px rgba(3,60,255,1), 0 0 14px rgba(3,60,255,1), 0 0 26px rgba(1,39,221,0.85);
+}
+body.tree-theme-moonwalker .cm-dropCursor { border-left-color: #00defb !important; }
+
+body.tree-theme-terminal {
+  --tree-bg: #0a0a0a; --tree-surface: #0f0f0f; --tree-text: #22cc22;
+  --tree-accent: #0a5c0a; --tree-muted: #1a7a1a; --tree-border: #1a3a1a;
+  --tree-on-accent: #22cc22; --tree-selection: rgba(40,180,40,0.35);
+}
+body.tree-theme-terminal .markdown-source-view.mod-cm6 .cm-content,
+body.tree-theme-terminal .markdown-rendered { text-shadow: 0 0 8px rgba(51,255,51,0.35); }
+body.tree-theme-terminal .tree-status { text-shadow: 0 0 6px rgba(51,255,51,0.4); }
+body.tree-theme-terminal .cm-cursor { border-left-color: #33ff33 !important; caret-color: #33ff33; }
+
+/* ── Terminal CRT (same green palette as Terminal, with the CRT effect switched on) ── */
+body.tree-theme-terminal-crt {
+  --tree-bg: #0a0a0a; --tree-surface: #0f0f0f; --tree-text: #22cc22;
+  --tree-accent: #0a5c0a; --tree-muted: #1a7a1a; --tree-border: #1a3a1a;
+  --tree-on-accent: #22cc22; --tree-selection: rgba(40,180,40,0.35);
+}
+body.tree-theme-terminal-crt .markdown-source-view.mod-cm6 .cm-content,
+body.tree-theme-terminal-crt .markdown-rendered {
+  text-shadow: 0 0 10px rgba(51,255,51,0.55), 0 0 3px rgba(51,255,51,0.7);
+  -webkit-font-smoothing: none;
+}
+body.tree-theme-terminal-crt .tree-status { text-shadow: 0 0 6px rgba(51,255,51,0.4); }
+body.tree-theme-terminal-crt .cm-cursor,
+body.tree-theme-terminal-crt .cm-dropCursor {
+  border-left: none !important;
+  width: 1ch !important;
+  background-color: #33ff33;
+  box-shadow: 0 0 10px rgba(51,255,51,0.55), 0 0 3px rgba(51,255,51,0.7);
+  transform: none;
+}
+
+/* ── Amber CRT (hidden theme — Konami code easter egg in tree) ─────────── */
+body.tree-theme-amber-crt {
+  --tree-bg: #0a0a0a; --tree-surface: #0f0f0f; --tree-text: #ffb000;
+  --tree-accent: #7a4a00; --tree-muted: #a06a00; --tree-border: #3a2200;
+  --tree-on-accent: #ffb000; --tree-selection: rgba(200,140,0,0.35);
+}
+body.tree-theme-amber-crt .markdown-source-view.mod-cm6 .cm-content,
+body.tree-theme-amber-crt .markdown-rendered {
+  text-shadow: 0 0 10px rgba(255,176,0,0.55), 0 0 3px rgba(255,176,0,0.7);
+  -webkit-font-smoothing: none;
+}
+body.tree-theme-amber-crt .tree-status { text-shadow: 0 0 6px rgba(255,176,0,0.4); }
+body.tree-theme-amber-crt .cm-cursor,
+body.tree-theme-amber-crt .cm-dropCursor {
+  border-left: none !important;
+  width: 1ch !important;
+  background-color: #ffb000;
+  box-shadow: 0 0 10px rgba(255,176,0,0.55), 0 0 3px rgba(255,176,0,0.7);
+  transform: none;
+}
+
+/* ── Doogie Journal (hidden theme — ABACABB easter egg in tree; WordPerfect DOS look) ── */
+body.tree-theme-doogie-journal {
+  --tree-bg: #0000AA; --tree-surface: #0000AA; --tree-text: #EAEAEA;
+  --tree-accent: #00AAAA; --tree-muted: #7575CA; --tree-border: #2323B4;
+  --tree-on-accent: #0000AA; --tree-selection: rgba(0,170,170,0.35);
+}
+body.tree-theme-doogie-journal .markdown-source-view.mod-cm6 .cm-content,
+body.tree-theme-doogie-journal .markdown-rendered { text-shadow: none; }
+body.tree-theme-doogie-journal .cm-cursor,
+body.tree-theme-doogie-journal .cm-dropCursor {
+  background-color: transparent !important;
+  border-left: none !important;
+  width: 1ch !important;   /* in Tree this came from the CRT block-cursor rule */
+  border-bottom: 2px solid var(--text-normal) !important;
+  box-shadow: none !important;
+  transform: none !important;
+}
+
+/* ── CRT scanlines + flicker, shared by the CRT-flavored themes ── */
+@keyframes tree-crt-flicker {
+  0%   { opacity: 1; } 92% { opacity: 1; } 93% { opacity: 0.93; }
+  94%  { opacity: 1; } 96% { opacity: 0.96; } 97% { opacity: 1; }
+  99%  { opacity: 0.97; } 100% { opacity: 1; }
+}
+body.tree-theme-terminal-crt,
+body.tree-theme-amber-crt,
+body.tree-theme-doogie-journal { animation: tree-crt-flicker 8s infinite; }
+body.tree-theme-terminal-crt::after,
+body.tree-theme-amber-crt::after,
+body.tree-theme-doogie-journal::after {
+  content: '';
+  position: fixed; top: 0; left: 0; right: 0; bottom: 0;
+  background: repeating-linear-gradient(to bottom, transparent 0px, transparent 1px, rgba(0,0,0,0.25) 1px, rgba(0,0,0,0.25) 3px);
+  pointer-events: none; z-index: 9999;
+}
+body.tree-theme-terminal-crt::before,
+body.tree-theme-amber-crt::before {
+  content: '';
+  position: fixed; top: 0; left: 0; right: 0; bottom: 0;
+  background: radial-gradient(ellipse at center, transparent 60%, rgba(0,0,0,0.55) 100%);
+  pointer-events: none; z-index: 9998;
+}
+body.tree-theme-doogie-journal::before {
+  content: '';
+  position: fixed; top: 0; left: 0; right: 0; bottom: 0;
+  background: radial-gradient(ellipse at center, transparent 70%, rgba(0,0,0,0.3) 100%);
+  pointer-events: none; z-index: 9998;
+}
+
+/* Game Boy LCD dot grid, as in Tree */
+body.tree-theme-gameboy .markdown-source-view,
+body.tree-theme-gameboy .markdown-reading-view {
+  background-image: radial-gradient(circle at 1px 1px, rgba(51,66,42,0.14) 1px, transparent 0);
+  background-size: 3px 3px;
+}

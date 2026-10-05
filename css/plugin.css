@@ -1,0 +1,162 @@
+/* ── Font + size (editor and reading view only, interface untouched) ── */
+body.tree-font-on .workspace-leaf-content[data-type="markdown"] {
+  --font-text: var(--tree-font);
+}
+body.tree-size-on .workspace-leaf-content[data-type="markdown"] {
+  --font-text-size: var(--tree-font-size);
+}
+
+/* ── Line length + spacing: Tree's measure in characters, and Tree's 1.8 line height
+      (Obsidian's default is 1.5), via Obsidian's own variables ── */
+.workspace-leaf-content[data-type="markdown"] {
+  --file-line-width: var(--tree-line-length, 68ch);
+  --line-height-normal: 1.8;
+}
+
+/* ── Status line ── */
+.workspace-leaf-content[data-type="markdown"] > .tree-status {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  position: relative;
+  flex-shrink: 0;
+  padding: 5px 16px;
+  padding-bottom: calc(5px + env(safe-area-inset-bottom, 0px));
+  background: var(--background-secondary);
+  border-top: 1px solid var(--background-modifier-border);
+  font-family: 'Tree JetBrains Mono', monospace;
+  font-size: 11px;
+  color: var(--text-muted);
+  white-space: nowrap;
+  user-select: none;
+  transition: opacity 0.3s;
+}
+.tree-status .tree-stat-left,
+.tree-status .tree-stat-right { display: flex; gap: 12px; }
+.tree-status .tree-stat-centre,
+.tree-status .tree-stat-msg {
+  position: absolute;
+  left: 50%;
+  transform: translateX(-50%);
+  pointer-events: none;
+}
+.tree-status .tree-stat-centre { transition: opacity 0.15s; }
+.tree-status .tree-stat-centre.is-hidden { opacity: 0; }
+.tree-status .tree-stat-msg { opacity: 0; transition: opacity 0.5s; }
+
+/* ── Focus mode: strip Obsidian down to the page ── */
+body.tree-focus .workspace-ribbon,
+body.tree-focus .mod-left-split,
+body.tree-focus .mod-right-split,
+body.tree-focus .workspace-split.mod-left-split,
+body.tree-focus .workspace-split.mod-right-split,
+body.tree-focus .titlebar,
+body.tree-focus .status-bar,
+body.tree-focus .mobile-navbar,
+body.tree-focus .workspace-tab-header-container,
+body.tree-focus .workspace-split.mod-root .workspace-tabs:not(.mod-active),
+body.tree-focus .workspace-split.mod-root .workspace-leaf-resize-handle,
+body.tree-focus .workspace-leaf-content[data-type="markdown"] .view-header {
+  display: none !important;
+}
+body.tree-focus .horizontal-main-container,
+body.tree-focus .workspace,
+body.tree-focus .workspace-split.mod-root { background: var(--background-primary); }
+
+body.tree-focus .markdown-source-view.mod-cm6 .cm-sizer,
+body.tree-focus .markdown-preview-view .markdown-preview-sizer {
+  max-width: var(--tree-line-length, 68ch) !important;
+  margin-left: auto !important;
+  margin-right: auto !important;
+}
+body.tree-focus .markdown-source-view.mod-cm6 .cm-scroller,
+body.tree-focus .markdown-preview-view {
+  padding-top: 12vh;
+}
+
+/* Status line stays, but quiet until you reach for it or it has something to say */
+body.tree-focus .tree-status {
+  background: var(--background-primary);
+  border-top-color: transparent;
+  opacity: 0.45;
+}
+body.tree-focus .tree-status:hover,
+body.tree-focus .tree-status.is-talking,
+body.tree-focus .tree-status.is-open { opacity: 1; }
+
+/* ── Quick panel: Aa in the status line ── */
+.tree-quick-toggle {
+  cursor: pointer;
+  opacity: 0.5;
+  padding: 0 2px;
+  transition: opacity 0.2s;
+}
+.tree-quick-toggle:hover,
+.is-open .tree-quick-toggle { opacity: 1; color: var(--text-normal); }
+
+.tree-quick {
+  position: absolute;
+  right: 10px;
+  bottom: calc(100% + 6px);
+  z-index: 40;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  padding: 8px 10px;
+  background: var(--background-secondary);
+  border: 1px solid var(--background-modifier-border);
+  border-radius: 6px;
+  box-shadow: 0 4px 16px rgba(0,0,0,0.12);
+  font-family: 'Tree JetBrains Mono', monospace;
+  font-size: 11px;
+  color: var(--text-muted);
+}
+body > .tree-quick {
+  position: fixed;
+  bottom: calc(40px + env(safe-area-inset-bottom, 0px));
+  right: 16px;
+}
+.tree-quick-row {
+  display: grid;
+  grid-template-columns: 6.5em auto 15em auto;
+  align-items: center;
+}
+.tree-quick-label { opacity: 0.7; }
+.tree-quick button {
+  all: unset;
+  cursor: pointer;
+  padding: 4px 6px;
+  border-radius: 4px;
+  font: inherit;
+  color: var(--text-normal);
+  text-align: center;
+}
+.tree-quick button:hover { background: var(--background-modifier-hover); }
+.tree-quick .tree-quick-arrow { color: var(--text-muted); }
+
+/* Exit glyph, for when there's no Escape key (iPad without keyboard) */
+.tree-focus-exit {
+  position: fixed;
+  top: calc(12px + env(safe-area-inset-top, 0px));
+  right: calc(14px + env(safe-area-inset-right, 0px));
+  z-index: 50;
+  display: none;
+  padding: 8px;
+  color: var(--text-muted);
+  opacity: 0.15;
+  cursor: pointer;
+  transition: opacity 0.3s;
+}
+.tree-focus-exit:hover,
+.tree-focus-exit:active { opacity: 0.7; }
+body.tree-focus .tree-focus-exit { display: flex; }
+
+/* ── Zen mode (Tree: .cm-zen-dim / zen-paragraph at 0.3) ── */
+.tree-zen-dim,
+.markdown-source-view.mod-cm6 .cm-line.tree-zen-dim-line { opacity: 0.3; transition: opacity 0.15s; }
+
+/* ── Typewriter: room above and below so the first and last lines can sit mid-screen ── */
+body.tree-typewriter .markdown-source-view.mod-cm6 .cm-content {
+  padding-top: 40vh !important;
+  padding-bottom: 50vh !important;
+}

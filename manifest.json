@@ -1,0 +1,11 @@
+{
+  "id": "tree-writer",
+  "name": "Tree",
+  "version": "0.4.0",
+  "minAppVersion": "1.4.0",
+  "description": "Tree's themes, fonts, status line and focus mode, inside Obsidian.",
+  "author": "uncle-jasper",
+  "authorUrl": "https://github.com/uncle-jasper",
+  "fundingUrl": "https://buymeacoffee.com/dandanmian",
+  "isDesktopOnly": false
+}
