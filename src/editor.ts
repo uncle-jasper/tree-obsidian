@@ -145,7 +145,10 @@ export function typewriterExtension(getSettings: () => TreeSettings) {
   return [centerOnInput, centerOnToggle];
 }
 
-// Tab jumps past closing ***, **, ~~ or * (Tree's Tab handler). Anywhere else it returns false,
+// Longest first, so *** wins over ** wins over *. The first four are Tree's; ==, ]] and ` are Obsidian's.
+const TAB_OUT_MARKS = ['***', '**', '~~', '==', ']]', '*', '`'];
+
+// Tab jumps past closing formatting marks (Tree's Tab handler). Anywhere else it returns false,
 // so Obsidian's own Tab (indent, etc.) carries on as normal. Unlike Tree, the marks must follow
 // text, i.e. be closing marks, so Tab at the start of "- **bold**" still indents the list item.
 export function tabOutExtension(getSettings: () => TreeSettings) {
@@ -159,8 +162,9 @@ export function tabOutExtension(getSettings: () => TreeSettings) {
       const before = state.sliceDoc(Math.max(0, from - 1), from);
       if (before === '' || /\s/.test(before)) return false;
       const ahead = state.sliceDoc(from, Math.min(state.doc.length, from + 3));
-      const skip = ahead.startsWith('***') ? 3 : (ahead.startsWith('**') || ahead.startsWith('~~')) ? 2 : ahead.startsWith('*') ? 1 : 0;
-      if (!skip) return false;
+      const mark = TAB_OUT_MARKS.find(m => ahead.startsWith(m));
+      if (!mark) return false;
+      const skip = mark.length;
       view.dispatch({ selection: EditorSelection.cursor(from + skip), userEvent: 'select' });
       return true;
     },

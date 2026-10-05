@@ -169,7 +169,7 @@ export class TreeSettingTab extends PluginSettingTab {
 
     new Setting(containerEl)
       .setName('Tab out of formatting')
-      .setDesc('With the cursor just before closing **, *, *** or ~~, Tab jumps past them, as in Tree. Everywhere else Tab works as usual.')
+      .setDesc('With the cursor just before closing **, *, ***, ~~, ==, ` or ]], Tab jumps past them, as in Tree. Everywhere else Tab works as usual.')
       .addToggle(t => t.setValue(s.tabOut)
         .onChange(async v => { s.tabOut = v; await save(); }));
 
