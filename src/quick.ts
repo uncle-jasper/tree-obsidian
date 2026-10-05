@@ -1,4 +1,4 @@
-import { FONTS, SIZES, THEMES, TreeSettings } from './settings';
+import { FONTS, SIZES, THEMES, TreeSettings, themeLabel } from './settings';
 import type TreePlugin from './main';
 
 interface Option { key: string; label: string; }
@@ -9,6 +9,8 @@ interface Choice {
   options: Option[];
   get(s: TreeSettings): string;
   set(s: TreeSettings, key: string): void;
+  labelFor?: (key: string) => string;   // label for a current value not in options (a secret theme)
+  from?: (s: TreeSettings) => string; // where ‹ › step from when the current value isn't in options
 }
 
 const fromRecord = (rec: Record<string, string>): Option[] => Object.entries(rec).map(([key, label]) => ({ key, label }));
@@ -19,6 +21,8 @@ const CHOICES: Choice[] = [
     options: fromRecord(THEMES).map(o => (o.key === '' ? { key: '', label: 'none' } : o)),
     get: s => s.theme,
     set: (s, k) => { s.theme = k; },
+    labelFor: themeLabel,
+    from: s => s.secretReturn,
   },
   {
     label: 'font',
@@ -105,14 +109,15 @@ export class QuickPanel {
 
     for (const choice of CHOICES) {
       const current = choice.get(s);
-      const i = Math.max(0, choice.options.findIndex(o => o.key === current));
+      const found = choice.options.findIndex(o => o.key === current);
+      const i = found >= 0 ? found : Math.max(0, choice.options.findIndex(o => o.key === choice.from?.(s)));
       const step = (dir: 1 | -1) => choice.options[(i + dir + choice.options.length) % choice.options.length].key;
       const isOpen = this.listOpen === choice.label;
 
       const row = this.el.createDiv({ cls: 'tree-quick-row' });
       row.createSpan({ cls: 'tree-quick-label', text: choice.label });
       row.createEl('button', { cls: 'tree-quick-arrow', text: '‹' }).onclick = () => this.pick(choice, step(-1));
-      const value = row.createEl('button', { cls: 'tree-quick-value' + (isOpen ? ' is-active' : ''), text: choice.options[i].label });
+      const value = row.createEl('button', { cls: 'tree-quick-value' + (isOpen ? ' is-active' : ''), text: found >= 0 ? choice.options[i].label : (choice.labelFor?.(current) ?? current) });
       row.createEl('button', { cls: 'tree-quick-arrow', text: '›' }).onclick = () => this.pick(choice, step(1));
 
       // On/off rows just flip; everything else opens its list

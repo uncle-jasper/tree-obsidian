@@ -1,11 +1,12 @@
 import { MarkdownView, Plugin, setIcon } from 'obsidian';
 import { EditorView, drawSelection } from '@codemirror/view';
 import { Transaction } from '@codemirror/state';
-import { DEFAULT_SETTINGS, THEMES, TreeSettings, TreeSettingTab } from './settings';
+import { DEFAULT_SETTINGS, SECRET_THEMES, THEMES, TreeSettings, TreeSettingTab } from './settings';
 import { StatusLine } from './status';
 import { QuickPanel } from './quick';
 import { CUSTOM_VARS, customPalette } from './custom';
 import { JustWrite } from './justwrite';
+import { Eggs } from './eggs';
 import { tabOutExtension, typewriterExtension, zenExtension } from './editor';
 
 export default class TreePlugin extends Plugin {
@@ -24,6 +25,7 @@ export default class TreePlugin extends Plugin {
 
     this.quick  = new QuickPanel(this);
     this.justWrite = new JustWrite(this);
+    new Eggs(this).register();
     this.status = new StatusLine(() => this.settings, anchor => this.quick.toggle(anchor));
     this.addSettingTab(new TreeSettingTab(this.app, this));
 
@@ -111,7 +113,7 @@ export default class TreePlugin extends Plugin {
   }
 
   private themeClasses() {
-    return Object.keys(THEMES).filter(Boolean).map(t => 'tree-theme-' + t);
+    return [...Object.keys(THEMES), ...Object.keys(SECRET_THEMES)].filter(Boolean).map(t => 'tree-theme-' + t);
   }
 
   applyAppearance() {

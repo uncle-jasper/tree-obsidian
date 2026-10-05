@@ -18,6 +18,7 @@ export interface TreeSettings {
   typewriter: boolean;
   tabOut: boolean;
   justWrite: JustWriteState | null;
+  secretReturn: string;   // the terminal theme to go "back to green" to
   custom: CustomColors;
   custom2: CustomColors;
 }
@@ -37,6 +38,7 @@ export const DEFAULT_SETTINGS: TreeSettings = {
   typewriter: false,
   tabOut: true,
   justWrite: null,
+  secretReturn: 'terminal',
   custom:  { bg: '#f5f0e8', text: '#2c2416', accent: '#8b6e4e' },   // Tree's defaults
   custom2: { bg: '#f5f0e8', text: '#2c2416', accent: '#8b6e4e' },
 };
@@ -54,11 +56,17 @@ export const THEMES: Record<string, string> = {
   moonwalker:        'moonwalker',
   terminal:          'terminal',
   'terminal-crt':    'terminal crt',
-  'amber-crt':       'amber crt',
-  'doogie-journal':  'doogie journal',
   custom:            'custom',
   custom2:           'custom 2',
 };
+
+// Easter-egg themes: never offered in a menu, only reached by code (see eggs.ts), as in Tree
+export const SECRET_THEMES: Record<string, string> = {
+  'amber-crt':       'amber crt',
+  'doogie-journal':  'doogie journal',
+};
+
+export const themeLabel = (key: string) => (key === '' ? 'none' : THEMES[key] ?? SECRET_THEMES[key] ?? key);
 
 export const FONTS: Record<string, string> = {
   '':                                     'Obsidian default',
@@ -94,7 +102,10 @@ export class TreeSettingTab extends PluginSettingTab {
     new Setting(containerEl)
       .setName('Theme')
       .setDesc('Tree palette. Works best with Obsidian\'s default theme underneath.')
-      .addDropdown(d => d.addOptions(THEMES).setValue(s.theme).setDisabled(locked)
+      .addDropdown(d => d.addOptions(THEMES)
+        // A secret theme shows as current while you're in it, but is never offered as a choice
+        .addOptions(SECRET_THEMES[s.theme] ? { [s.theme]: SECRET_THEMES[s.theme] } : {})
+        .setValue(s.theme).setDisabled(locked)
         .onChange(async v => { s.theme = v; await save(); }));
 
     new Setting(containerEl)
