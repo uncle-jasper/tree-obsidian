@@ -9,6 +9,14 @@ body.tree-size-on .workspace-leaf-content[data-type="markdown"] {
   --font-preferred-size: calc(var(--tree-font-size) * var(--preferred-text-scale, 1));
 }
 
+/* Bold as Tree draws it: weight 700 plus a hairline stroke. Most bundled fonts have no bold face,
+   and Chromium's synthetic bold is barely visible. */
+body.tree-font-on .markdown-source-view.mod-cm6 .cm-strong,
+body.tree-font-on .markdown-rendered :is(strong, b) {
+  font-weight: 700;
+  -webkit-text-stroke: 0.4px currentColor;
+}
+
 /* ── Line length + spacing: Tree's measure in characters, and Tree's 1.8 line height
       (Obsidian's default is 1.5), via Obsidian's own variables ── */
 .workspace-leaf-content[data-type="markdown"] {

@@ -50,8 +50,10 @@ npm run build   # tsc, esbuild, load smoke test (scripts/smoke.cjs), styles.css
   - The glow is `0 0 0.361em currentColor, 0 0 0.434em #0000ff, 0 0 0.434em #0000ff`. Sizes are in em, so it scales with the font.
   - The inner layer is `currentColor`, so dim text gets a dim glow. A fixed bright inner layer blurs any text darker than itself.
   - Keep it at 4 shadows or fewer. Dan has hit typing lag from stacked shadows.
-  - iOS only: headings glow at 50%, bold text at 35%. WebKit blooms bold text about twice as bright as Chromium, so full-strength headings smeared on iPhone while matching body text on Mac. Check glow changes in both engines.
+  - iOS only: headings glow at 50%, bold text at 50%. WebKit blooms bold text about twice as bright as Chromium, so full-strength headings smeared on iPhone while matching body text on Mac. Check glow changes in both engines.
   - Tree and Ginkgo do the same in WebKit only (`@supports (font: -apple-system-body)`): editor headings at 60%, preview headings at 45%, bold at 50%.
+- **Glow themes (Moonwalker, Terminal, Terminal CRT, Amber CRT):** every text glow follows the text color (`currentColor`, or `color-mix(in srgb, currentColor N%, transparent)` for a fainter one), so dim text never sits under a brighter glow and blurs. Applies in all three apps. Terminal links are `#7dff7d`, Amber CRT links `#ffd27a`. Doogie Journal has no glow.
+- **Bold:** drawn as Tree draws it, weight 700 plus a 0.4px `-webkit-text-stroke`, while a Tree font is on. Most bundled fonts have no bold face, and Chromium's synthetic bold barely shows.
 - **Focus mode on desktop:** the ribbon waits off the left edge and slides out on hover. Its focus icon is a way out without Escape.
 - **Skipped on purpose:** syntax dimming, smart punctuation, heading shortcuts, dictionary, tabs, library, preview/split, find/replace, and a ✎ port of Tree's annotations. Dan uses Obsidian's `%%` comments.
 

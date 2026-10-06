@@ -118,13 +118,14 @@ body.tree-theme-moonwalker .markdown-source-view.mod-cm6 .cm-content,
 body.tree-theme-moonwalker .markdown-rendered {
   text-shadow: 0 0 0.361em currentColor, 0 0 0.434em #0000ff, 0 0 0.434em #0000ff;
 }
-/* iOS: bold text in paragraphs blooms the same way; 35% leaves it about 1.15x the body glow.
+/* iOS: bold text in paragraphs blooms the same way; 50% leaves it about 1.15x the body glow
+   (measured for Tree's bold, 700 with a 0.4px stroke, which the plugin now uses).
    Before the heading rule, so bold inside a heading keeps the heading's glow. */
 body.tree-theme-moonwalker.is-ios .markdown-source-view.mod-cm6 .cm-strong,
 body.tree-theme-moonwalker.is-ios .markdown-source-view.mod-cm6 .cm-strong *,
 body.tree-theme-moonwalker.is-ios .markdown-rendered :is(strong, b),
 body.tree-theme-moonwalker.is-ios .markdown-rendered :is(strong, b) * {
-  text-shadow: 0 0 0.361em color-mix(in srgb, currentColor 35%, transparent), 0 0 0.434em rgba(0,0,255,0.35), 0 0 0.434em rgba(0,0,255,0.35);
+  text-shadow: 0 0 0.361em color-mix(in srgb, currentColor 50%, transparent), 0 0 0.434em rgba(0,0,255,0.5), 0 0 0.434em rgba(0,0,255,0.5);
 }
 /* iOS: WebKit blooms bold text far more than Chromium does, so headings smeared.
    Same glow sized to the heading, at half strength. Set on every element (not inherited)
@@ -152,10 +153,12 @@ body.tree-theme-terminal {
   --tree-bg: #0a0a0a; --tree-surface: #0f0f0f; --tree-text: #22cc22;
   --tree-accent: #0a5c0a; --tree-muted: #1a7a1a; --tree-border: #1a3a1a;
   --tree-on-accent: #22cc22; --tree-selection: rgba(40,180,40,0.35);
+  /* links and tags: a pale phosphor, brighter than the text */
+  --text-accent: #7dff7d; --text-accent-hover: #7dff7d;
 }
 body.tree-theme-terminal .markdown-source-view.mod-cm6 .cm-content,
-body.tree-theme-terminal .markdown-rendered { text-shadow: 0 0 8px rgba(51,255,51,0.35); }
-body.tree-theme-terminal .tree-status { text-shadow: 0 0 6px rgba(51,255,51,0.4); }
+body.tree-theme-terminal .markdown-rendered { text-shadow: 0 0 8px color-mix(in srgb, currentColor 44%, transparent); }
+body.tree-theme-terminal .tree-status { text-shadow: 0 0 6px color-mix(in srgb, currentColor 50%, transparent); }
 body.tree-theme-terminal .cm-cursor { border-left-color: #33ff33 !important; caret-color: #33ff33; }
 
 /* ── Terminal CRT (same green palette as Terminal, with the CRT effect switched on) ── */
@@ -163,13 +166,15 @@ body.tree-theme-terminal-crt {
   --tree-bg: #0a0a0a; --tree-surface: #0f0f0f; --tree-text: #22cc22;
   --tree-accent: #0a5c0a; --tree-muted: #1a7a1a; --tree-border: #1a3a1a;
   --tree-on-accent: #22cc22; --tree-selection: rgba(40,180,40,0.35);
+  /* links and tags: a pale phosphor, brighter than the text */
+  --text-accent: #7dff7d; --text-accent-hover: #7dff7d;
 }
 body.tree-theme-terminal-crt .markdown-source-view.mod-cm6 .cm-content,
 body.tree-theme-terminal-crt .markdown-rendered {
-  text-shadow: 0 0 10px rgba(51,255,51,0.55), 0 0 3px rgba(51,255,51,0.7);
+  text-shadow: 0 0 10px color-mix(in srgb, currentColor 69%, transparent), 0 0 3px color-mix(in srgb, currentColor 88%, transparent);
   -webkit-font-smoothing: none;
 }
-body.tree-theme-terminal-crt .tree-status { text-shadow: 0 0 6px rgba(51,255,51,0.4); }
+body.tree-theme-terminal-crt .tree-status { text-shadow: 0 0 6px color-mix(in srgb, currentColor 50%, transparent); }
 body.tree-theme-terminal-crt .cm-cursor,
 body.tree-theme-terminal-crt .cm-dropCursor {
   border-left: none !important;
@@ -184,13 +189,15 @@ body.tree-theme-amber-crt {
   --tree-bg: #0a0a0a; --tree-surface: #0f0f0f; --tree-text: #ffb000;
   --tree-accent: #7a4a00; --tree-muted: #a06a00; --tree-border: #3a2200;
   --tree-on-accent: #ffb000; --tree-selection: rgba(200,140,0,0.35);
+  /* links and tags: a pale phosphor, brighter than the text */
+  --text-accent: #ffd27a; --text-accent-hover: #ffd27a;
 }
 body.tree-theme-amber-crt .markdown-source-view.mod-cm6 .cm-content,
 body.tree-theme-amber-crt .markdown-rendered {
-  text-shadow: 0 0 10px rgba(255,176,0,0.55), 0 0 3px rgba(255,176,0,0.7);
+  text-shadow: 0 0 10px color-mix(in srgb, currentColor 55%, transparent), 0 0 3px color-mix(in srgb, currentColor 70%, transparent);
   -webkit-font-smoothing: none;
 }
-body.tree-theme-amber-crt .tree-status { text-shadow: 0 0 6px rgba(255,176,0,0.4); }
+body.tree-theme-amber-crt .tree-status { text-shadow: 0 0 6px color-mix(in srgb, currentColor 40%, transparent); }
 body.tree-theme-amber-crt .cm-cursor,
 body.tree-theme-amber-crt .cm-dropCursor {
   border-left: none !important;
