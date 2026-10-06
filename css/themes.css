@@ -111,6 +111,8 @@ body.tree-theme-moonwalker {
   --tree-bg: #050709; --tree-surface: #0b0f14; --tree-text: #00defb;
   --tree-accent: #0127dd; --tree-muted: #1a3fae; --tree-border: #0d1a4a;
   --tree-on-accent: #050709; --tree-selection: rgba(1,39,221,0.35);
+  /* links and tags: bright enough to glow, not hollow */
+  --text-accent: #5c8bff; --text-accent-hover: #5c8bff;
 }
 body.tree-theme-moonwalker .markdown-source-view.mod-cm6 .cm-content,
 body.tree-theme-moonwalker .markdown-rendered {
