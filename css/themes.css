@@ -118,6 +118,14 @@ body.tree-theme-moonwalker .markdown-source-view.mod-cm6 .cm-content,
 body.tree-theme-moonwalker .markdown-rendered {
   text-shadow: 0 0 0.361em currentColor, 0 0 0.434em #0000ff, 0 0 0.434em #0000ff;
 }
+/* iOS: bold text in paragraphs blooms the same way; 35% leaves it about 1.15x the body glow.
+   Before the heading rule, so bold inside a heading keeps the heading's glow. */
+body.tree-theme-moonwalker.is-ios .markdown-source-view.mod-cm6 .cm-strong,
+body.tree-theme-moonwalker.is-ios .markdown-source-view.mod-cm6 .cm-strong *,
+body.tree-theme-moonwalker.is-ios .markdown-rendered :is(strong, b),
+body.tree-theme-moonwalker.is-ios .markdown-rendered :is(strong, b) * {
+  text-shadow: 0 0 0.361em color-mix(in srgb, currentColor 35%, transparent), 0 0 0.434em rgba(0,0,255,0.35), 0 0 0.434em rgba(0,0,255,0.35);
+}
 /* iOS: WebKit blooms bold text far more than Chromium does, so headings smeared.
    Same glow sized to the heading, at half strength. Set on every element (not inherited)
    so em and currentColor resolve per element; the dim # marks get a dim glow. */
