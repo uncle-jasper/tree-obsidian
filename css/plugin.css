@@ -103,6 +103,27 @@ body.tree-focus .workspace-split.mod-root .workspace-leaf-resize-handle,
 body.tree-focus .workspace-leaf-content[data-type="markdown"] .view-header {
   display: none !important;
 }
+/* Desktop: the ribbon waits just off the left edge and slides out under the pointer,
+   so its focus icon is a way out without Escape. A 10px sliver stays on screen to catch the hover. */
+body.tree-focus.show-ribbon:not(.is-mobile) .workspace-ribbon.mod-primary {
+  display: flex !important;
+  position: fixed;
+  top: var(--header-height);
+  bottom: 0;
+  left: 0;
+  margin-top: 0;
+  background-color: var(--background-secondary);
+  transform: translateX(calc(-100% + 10px));
+  opacity: 0;
+  transition: transform 0.25s ease 0.3s, opacity 0.25s ease 0.3s;
+}
+body.tree-focus.show-ribbon:not(.is-mobile) .workspace-ribbon.mod-primary:hover {
+  transform: none;
+  opacity: 1;
+  transition-delay: 0s;
+}
+body.tree-focus.show-ribbon:not(.is-mobile) .workspace-ribbon.mod-primary::before { display: none; }
+
 body.tree-focus .horizontal-main-container,
 body.tree-focus .workspace,
 body.tree-focus .workspace-split.mod-root { background: var(--background-primary); }
