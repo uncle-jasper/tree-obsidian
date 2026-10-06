@@ -116,12 +116,12 @@ body.tree-theme-moonwalker {
 }
 body.tree-theme-moonwalker .markdown-source-view.mod-cm6 .cm-content,
 body.tree-theme-moonwalker .markdown-rendered {
-  text-shadow: 0 0 0.361em rgb(49,142,255), 0 0 0.434em #0000ff, 0 0 0.434em #0000ff;
+  text-shadow: 0 0 0.361em currentColor, 0 0 0.434em #0000ff, 0 0 0.434em #0000ff;
 }
 /* as specific as the base status rule, which sets --text-muted */
 body.tree-theme-moonwalker .workspace-leaf-content[data-type="markdown"] > .tree-status {
   color: var(--text-normal);
-  text-shadow: 0 0 0.361em rgb(49,142,255), 0 0 0.434em #0000ff, 0 0 0.434em #0000ff;
+  text-shadow: 0 0 0.361em currentColor, 0 0 0.434em #0000ff, 0 0 0.434em #0000ff;
 }
 body.tree-theme-moonwalker .cm-cursor {
   border-left: none !important;
