@@ -51,6 +51,7 @@ npm run build   # tsc, esbuild, load smoke test (scripts/smoke.cjs), styles.css
   - The inner layer is `currentColor`, so dim text gets a dim glow. A fixed bright inner layer blurs any text darker than itself.
   - Keep it at 4 shadows or fewer. Dan has hit typing lag from stacked shadows.
   - iOS only: headings glow at 50%. WebKit blooms bold text about twice as bright as Chromium, so full-strength headings smeared on iPhone while matching body text on Mac. Check glow changes in both engines.
+  - Tree and Ginkgo do the same in WebKit only (`@supports (font: -apple-system-body)`): editor headings at 60%, preview headings at 45%.
 - **Focus mode on desktop:** the ribbon waits off the left edge and slides out on hover. Its focus icon is a way out without Escape.
 - **Skipped on purpose:** syntax dimming, smart punctuation, heading shortcuts, dictionary, tabs, library, preview/split, find/replace, and a ✎ port of Tree's annotations. Dan uses Obsidian's `%%` comments.
 
