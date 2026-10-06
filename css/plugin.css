@@ -4,6 +4,9 @@ body.tree-font-on .workspace-leaf-content[data-type="markdown"] {
 }
 body.tree-size-on .workspace-leaf-content[data-type="markdown"] {
   --font-text-size: var(--tree-font-size);
+  /* Obsidian 1.14 sizes the editor from --font-preferred-size, which is resolved on body,
+     so a leaf-level --font-text-size alone no longer reaches it. Keep iOS Dynamic Type. */
+  --font-preferred-size: calc(var(--tree-font-size) * var(--preferred-text-scale, 1));
 }
 
 /* ── Line length + spacing: Tree's measure in characters, and Tree's 1.8 line height
