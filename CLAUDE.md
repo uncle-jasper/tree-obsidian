@@ -45,6 +45,12 @@ npm run build   # tsc, esbuild, load smoke test (scripts/smoke.cjs), styles.css
   - Title: the opening `# Heading`, else the file name.
   - Repeat the title as an `<h3>` at the top of the body. The blog's theme doesn't show post titles.
   - The body is rendered by Obsidian, so `%%` comments and properties are left out.
+- **Moonwalker:** a glow fitted to screenshots of the Genesis *Moonwalker* title screen. The same values are in Tree and Ginkgo, so change all three together.
+  - Text `#6cb5f8` on pure black. Links and tags `#8a8aff`, kept brighter than the glow's inner layer so they don't look hollow.
+  - The glow is `0 0 0.361em currentColor, 0 0 0.434em #0000ff, 0 0 0.434em #0000ff`. Sizes are in em, so it scales with the font.
+  - The inner layer is `currentColor`, so dim text gets a dim glow. A fixed bright inner layer blurs any text darker than itself.
+  - Keep it at 4 shadows or fewer. Dan has hit typing lag from stacked shadows.
+- **Focus mode on desktop:** the ribbon waits off the left edge and slides out on hover. Its focus icon is a way out without Escape.
 - **Skipped on purpose:** syntax dimming, smart punctuation, heading shortcuts, dictionary, tabs, library, preview/split, find/replace, and a ✎ port of Tree's annotations. Dan uses Obsidian's `%%` comments.
 
 ## Gotchas learned
@@ -52,4 +58,6 @@ npm run build   # tsc, esbuild, load smoke test (scripts/smoke.cjs), styles.css
 - Never reuse a class name for both a body state and an element. One clash blanked the whole window.
 - Avoid circular imports between modules that read each other's constants at load. The smoke test exists because of one.
 - Prefer putting effects in the same transaction, as typewriter does with `transactionExtender`. Scrolling afterward causes a visible double paint.
+- Obsidian 1.14 sizes the editor from `--font-preferred-size`, which is worked out on `body`. Setting `--font-text-size` on the note pane alone does nothing; set both.
+- A theme rule must be at least as specific as the base rule it overrides. Moonwalker's status color lost to `.workspace-leaf-content[data-type="markdown"] > .tree-status`, and the old glow's white edge hid it.
 - CSS padding above `.cm-content` lands between properties and the first line in Obsidian.

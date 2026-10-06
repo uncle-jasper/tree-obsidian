@@ -9,7 +9,7 @@ The writing feel of [Tree](https://github.com/uncle-jasper/tree), a distraction-
 - **Status line.** Word and character count, reading time and cursor position, plus Tree's little typed-out messages and word milestones. Obsidian's own status bar tucks away behind a faint ⋯ at the right end.
 - **Word goal.** Click the word count (or Ctrl+Shift+W on Mac) and type a number. Progress shows as "200 / 500 words", with a thin line filling along the bottom.
 - **Aa panel.** Tap the Aa in the status line to change theme, font, size, zen and typewriter without opening settings.
-- **Focus mode.** Hides all of Obsidian's interface and leaves just the page. Escape, or the faint corner mark, brings it back.
+- **Focus mode.** Hides all of Obsidian's interface and leaves just the page. Escape, or the faint corner mark, brings it back. On a Mac, the ribbon also slides out when you touch the left edge, so its focus icon is a way out too.
 - **Zen mode.** Fades everything except the sentence or paragraph you're writing.
 - **Typewriter mode.** Keeps the line you're typing in the middle of the screen.
 - **Just Write.** Cmd+Shift+J locks the look for 30 minutes, or until you've written 500 words.
