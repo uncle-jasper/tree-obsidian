@@ -118,6 +118,15 @@ body.tree-theme-moonwalker .markdown-source-view.mod-cm6 .cm-content,
 body.tree-theme-moonwalker .markdown-rendered {
   text-shadow: 0 0 0.361em currentColor, 0 0 0.434em #0000ff, 0 0 0.434em #0000ff;
 }
+/* iOS: WebKit blooms bold text far more than Chromium does, so headings smeared.
+   Same glow sized to the heading, at half strength. Set on every element (not inherited)
+   so em and currentColor resolve per element; the dim # marks get a dim glow. */
+body.tree-theme-moonwalker.is-ios .markdown-source-view.mod-cm6 .HyperMD-header,
+body.tree-theme-moonwalker.is-ios .markdown-source-view.mod-cm6 .HyperMD-header *,
+body.tree-theme-moonwalker.is-ios .markdown-rendered :is(h1, h2, h3, h4, h5, h6),
+body.tree-theme-moonwalker.is-ios .markdown-rendered :is(h1, h2, h3, h4, h5, h6) * {
+  text-shadow: 0 0 0.361em color-mix(in srgb, currentColor 50%, transparent), 0 0 0.434em rgba(0,0,255,0.5), 0 0 0.434em rgba(0,0,255,0.5);
+}
 /* as specific as the base status rule, which sets --text-muted */
 body.tree-theme-moonwalker .workspace-leaf-content[data-type="markdown"] > .tree-status {
   color: var(--text-normal);
