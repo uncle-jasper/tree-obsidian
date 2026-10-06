@@ -108,27 +108,27 @@ body.tree-theme-gameboy .markdown-rendered,
 body.tree-theme-gameboy .tree-status { font-weight: 700; }
 
 body.tree-theme-moonwalker {
-  --tree-bg: #050709; --tree-surface: #0b0f14; --tree-text: #00defb;
+  --tree-bg: #000000; --tree-surface: #0b0f14; --tree-text: #6cb5f8;
   --tree-accent: #0127dd; --tree-muted: #1a3fae; --tree-border: #0d1a4a;
-  --tree-on-accent: #050709; --tree-selection: rgba(1,39,221,0.35);
+  --tree-on-accent: #000000; --tree-selection: rgba(1,39,221,0.35);
   /* links and tags: bright enough to glow, not hollow */
-  --text-accent: #5c8bff; --text-accent-hover: #5c8bff;
+  --text-accent: #6b6bff; --text-accent-hover: #6b6bff;
 }
 body.tree-theme-moonwalker .markdown-source-view.mod-cm6 .cm-content,
 body.tree-theme-moonwalker .markdown-rendered {
-  text-shadow: 0 0 1px rgba(220,250,255,1), 0 0 5px rgba(3,60,255,1), 0 0 14px rgba(3,60,255,1), 0 0 32px rgba(1,39,221,0.9);
+  text-shadow: 0 0 0.361em rgb(49,142,255), 0 0 0.434em #0000ff, 0 0 0.434em #0000ff;
 }
 body.tree-theme-moonwalker .tree-status {
   color: var(--text-normal);
-  text-shadow: 0 0 1px rgba(220,250,255,1), 0 0 3px rgba(3,60,255,1), 0 0 7px rgba(1,39,221,0.6);
+  text-shadow: 0 0 0.361em rgb(49,142,255), 0 0 0.434em #0000ff, 0 0 0.434em #0000ff;
 }
 body.tree-theme-moonwalker .cm-cursor {
   border-left: none !important;
   width: 2px !important;
-  background-color: #00defb;
-  box-shadow: 0 0 1px rgba(220,250,255,1), 0 0 5px rgba(3,60,255,1), 0 0 14px rgba(3,60,255,1), 0 0 26px rgba(1,39,221,0.85);
+  background-color: #6cb5f8;
+  box-shadow: 0 0 0.361em rgb(49,142,255), 0 0 0.434em #0000ff, 0 0 0.434em #0000ff;
 }
-body.tree-theme-moonwalker .cm-dropCursor { border-left-color: #00defb !important; }
+body.tree-theme-moonwalker .cm-dropCursor { border-left-color: #6cb5f8 !important; }
 
 body.tree-theme-terminal {
   --tree-bg: #0a0a0a; --tree-surface: #0f0f0f; --tree-text: #22cc22;
