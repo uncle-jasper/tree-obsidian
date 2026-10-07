@@ -14,7 +14,7 @@ body.tree-size-on .workspace-leaf-content[data-type="markdown"] {
 body.tree-font-on .markdown-source-view.mod-cm6 .cm-strong,
 body.tree-font-on .markdown-rendered :is(strong, b) {
   font-weight: 700;
-  -webkit-text-stroke: 0.4px currentColor;
+  -webkit-text-stroke: 0.6px currentColor;
 }
 
 /* ── Line length + spacing: Tree's measure in characters, and Tree's 1.8 line height
@@ -166,6 +166,35 @@ body.tree-focus .tree-status.is-open { opacity: 1; }
 }
 .tree-quick-toggle:hover,
 .is-open .tree-quick-toggle { opacity: 1; color: var(--text-normal); }
+
+/* ── ¶ in the status line: hides properties (top) and linked/unlinked mentions (bottom).
+      Faint while they show, bright while they're hidden. body.tree-hide-extras is the state,
+      .tree-extras-toggle the element, so the names differ. ── */
+.tree-extras-toggle {
+  cursor: pointer;
+  opacity: 0.35;
+  padding: 0 2px;
+  transition: opacity 0.2s;
+}
+.tree-extras-toggle:hover { opacity: 0.7; }
+.tree-extras-toggle.is-on { opacity: 1; color: var(--text-normal); }
+
+/* Properties through Obsidian's own variables: its rule (.markdown-source-view.is-live-preview.show-properties
+   .metadata-container:not(.mod-error)) outranks a plain display: none. */
+body.tree-hide-extras .workspace-leaf-content[data-type="markdown"] {
+  --metadata-display-editing: none;
+  --metadata-display-reading: none;
+}
+body.tree-hide-extras .workspace-leaf-content[data-type="markdown"] .embedded-backlinks { display: none; }
+
+/* ── Room at the bottom: bottomScrollMargin() in editor.ts keeps the line you're typing 80px above the
+      status line, as Tree does, quiet mode or not. Where nothing follows the note (quiet mode, or no
+      mentions in it), leave Tree's 6rem under the last line so there's room to scroll to. With mentions
+      showing, they give that room, so no gap is added above them. Typewriter has its own, larger room. ── */
+body.tree-hide-extras:not(.tree-typewriter) .workspace-leaf-content[data-type="markdown"] .markdown-source-view.mod-cm6 .cm-content,
+body:not(.tree-typewriter) .workspace-leaf-content[data-type="markdown"] .markdown-source-view.mod-cm6:not(:has(.embedded-backlinks)) .cm-content,
+body.tree-hide-extras .workspace-leaf-content[data-type="markdown"] .markdown-preview-sizer,
+.workspace-leaf-content[data-type="markdown"] .markdown-preview-view:not(:has(.embedded-backlinks)) .markdown-preview-sizer { padding-bottom: 6rem !important; }
 
 .tree-quick {
   position: absolute;

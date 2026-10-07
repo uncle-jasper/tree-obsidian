@@ -145,6 +145,13 @@ export function typewriterExtension(getSettings: () => TreeSettings) {
   return [centerOnInput, centerOnToggle];
 }
 
+// Room at the bottom (see css/plugin.css): when CodeMirror scrolls to follow the cursor,
+// it keeps 80px clear above the status line, as Tree's ensureCursorPadding() does.
+// Typewriter mode keeps the line centered instead.
+export function bottomScrollMargin() {
+  return EditorView.scrollMargins.of(() => (document.body.hasClass('tree-typewriter') ? null : { bottom: 80 }));
+}
+
 // Longest first, so *** wins over ** wins over *. The first four are Tree's; ==, ]] and ` are Obsidian's.
 const TAB_OUT_MARKS = ['***', '**', '~~', '==', ']]', '*', '`'];
 
@@ -169,4 +176,32 @@ export function tabOutExtension(getSettings: () => TreeSettings) {
       return true;
     },
   }]));
+}
+
+// Tree's auto-pair for * and ~, where Obsidian's differs.
+// Typing * inside an empty pair grows the pair around the cursor: *|* becomes **|**, and **|**
+// becomes ***|***. Obsidian's own auto-pair steps over the closing * instead, so we catch those
+// two cases first and leave the first * (and selections) to Obsidian.
+// A single ~ types ~~|~~ (Obsidian types just one); a ~ right after another ~ types normally.
+// An input handler rather than a keymap, so it works with the iPad's on-screen keyboard too.
+export function autoPairExtension() {
+  return Prec.highest(EditorView.inputHandler.of((view, from, to, text) => {
+    if ((text !== '*' && text !== '~') || from !== to || view.state.selection.ranges.length > 1) return false;
+    const { state } = view;
+    if (text === '~') {
+      if (state.sliceDoc(Math.max(0, from - 1), from) === '~') return false;
+      view.dispatch({ changes: { from, insert: '~~~~' }, selection: EditorSelection.cursor(from + 2), userEvent: 'input.type' });
+      return true;
+    }
+    const b2 = state.sliceDoc(Math.max(0, from - 2), from);
+    const a2 = state.sliceDoc(from, Math.min(state.doc.length, from + 2));
+    const width = b2 === '**' && a2 === '**' ? 2 : b2.endsWith('*') && a2.startsWith('*') ? 1 : 0;
+    if (!width) return false;
+    view.dispatch({
+      changes: [{ from: from - width, insert: '*' }, { from: from + width, insert: '*' }],
+      selection: EditorSelection.cursor(from + 1),
+      userEvent: 'input.type',
+    });
+    return true;
+  }));
 }

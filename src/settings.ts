@@ -19,6 +19,7 @@ export interface TreeSettings {
   zen: boolean;
   zenGranularity: 'sentence' | 'paragraph';
   typewriter: boolean;
+  hideExtras: boolean;  // properties and linked/unlinked mentions hidden
   tabOut: boolean;
   justWrite: JustWriteState | null;
   goal: WordGoal | null;
@@ -43,6 +44,7 @@ export const DEFAULT_SETTINGS: TreeSettings = {
   zen: false,
   zenGranularity: 'sentence',
   typewriter: false,
+  hideExtras: false,
   tabOut: true,
   justWrite: null,
   goal: null,
@@ -87,6 +89,7 @@ export const FONTS: Record<string, string> = {
   "'Tree Inconsolata', monospace":        'Inconsolata',
   "'Tree Geist Mono', monospace":         'Geist Mono',
   "'Tree Geist Sans', sans-serif":        'Geist Sans',
+  "'Tree DejaVu Sans Mono', monospace":   'DejaVu Sans Mono',
   "'Tree PerfectDOS437', monospace":      'Perfect DOS VGA 437',
   "'Tree PrintChar21', monospace":        'Print Char 21',
 };

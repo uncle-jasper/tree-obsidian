@@ -2,13 +2,13 @@ import { MarkdownView, Platform, Plugin, setIcon } from 'obsidian';
 import { EditorView, drawSelection } from '@codemirror/view';
 import { Transaction } from '@codemirror/state';
 import { DEFAULT_SETTINGS, SECRET_THEMES, THEMES, TreeSettings, TreeSettingTab } from './settings';
-import { StatusLine, countWords } from './status';
+import { StatusLine, countWords, noteBody } from './status';
 import { QuickPanel } from './quick';
 import { CUSTOM_VARS, customPalette } from './custom';
 import { JustWrite } from './justwrite';
 import { Eggs } from './eggs';
 import { WordPress } from './wordpress';
-import { tabOutExtension, typewriterExtension, zenExtension } from './editor';
+import { autoPairExtension, bottomScrollMargin, tabOutExtension, typewriterExtension, zenExtension } from './editor';
 
 export default class TreePlugin extends Plugin {
   settings!: TreeSettings;
@@ -17,6 +17,7 @@ export default class TreePlugin extends Plugin {
   justWrite!: JustWrite;
   settingTab!: TreeSettingTab;
   focusActive = false;
+  private focusHidExtras = false;   // focus mode hid properties and mentions, so leaving it shows them again
   private exitEl: HTMLElement | null = null;
   private refreshQueued = false;
   private editQueued = false;
@@ -33,6 +34,7 @@ export default class TreePlugin extends Plugin {
       onQuick: anchor => this.quick.toggle(anchor),
       onSetGoal: target => this.setGoal(target),
       onPeekObsidian: on => this.peekObsidian(on),
+      onToggleExtras: () => this.toggleExtras(),
     });
     this.settingTab = new TreeSettingTab(this.app, this);
     this.addSettingTab(this.settingTab);
@@ -42,7 +44,7 @@ export default class TreePlugin extends Plugin {
     this.registerEvent(this.app.workspace.on('layout-change', () => { this.attachStatus(); this.justWrite.apply(); }));
     // Make sure the editor draws its own cursor (so Tree's cursor styles apply), blinking at Tree's 1s rate
     this.registerEditorExtension(drawSelection({ cursorBlinkRate: 1000 }));
-    this.registerEditorExtension([zenExtension(() => this.settings), typewriterExtension(() => this.settings), tabOutExtension(() => this.settings)]);
+    this.registerEditorExtension([zenExtension(() => this.settings), typewriterExtension(() => this.settings), tabOutExtension(() => this.settings), autoPairExtension(), bottomScrollMargin()]);
     this.registerEditorExtension(EditorView.updateListener.of(u => {
       if (!(u.docChanged || u.selectionSet)) return;
       // Only your own typing counts toward milestones and idle nudges, not sync or other plugins
@@ -57,7 +59,7 @@ export default class TreePlugin extends Plugin {
       const sel = view.editor.getSelection().trim().toLowerCase();
       if (!sel || /\s/.test(sel)) return;
       const escaped = sel.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
-      const count = (view.editor.getValue().toLowerCase().match(new RegExp('\\b' + escaped + '\\b', 'g')) || []).length;
+      const count = (noteBody(view.editor.getValue()).body.toLowerCase().match(new RegExp('\\b' + escaped + '\\b', 'g')) || []).length;
       if (count > 0) this.status.showWordCount(sel, count);
     });
 
@@ -87,6 +89,10 @@ export default class TreePlugin extends Plugin {
     this.addCommand({ id: 'toggle-zen', name: 'Toggle zen mode', callback: () => this.toggleZen() });
     this.addCommand({ id: 'cycle-zen', name: 'Switch zen mode between sentence and paragraph', callback: () => this.cycleZenGranularity() });
     this.addCommand({ id: 'toggle-typewriter', name: 'Toggle typewriter mode', callback: () => this.toggleTypewriter() });
+    // Ctrl+Shift+H, as Tree hides its toolbar. Free on Mac and iPad, where Obsidian's shortcuts use Cmd; elsewhere Ctrl is Mod, so no default.
+    this.addCommand({ id: 'toggle-extras', name: 'Toggle quiet mode (hide properties and mentions)',
+      hotkeys: Platform.isMacOS || Platform.isIosApp ? [{ modifiers: ['Ctrl', 'Shift'], key: 'H' }] : [],
+      callback: () => this.toggleExtras() });
     this.addRibbonIcon('maximize-2', 'Tree: focus mode', () => this.toggleFocus());
 
     this.exitEl = document.body.createDiv({ cls: 'tree-focus-exit', attr: { 'aria-label': 'Leave focus mode' } });
@@ -107,7 +113,7 @@ export default class TreePlugin extends Plugin {
     this.quick.close();
     this.status.destroy();
     this.exitEl?.remove();
-    document.body.removeClass('tree-focus', 'tree-typewriter', 'tree-just-write', 'tree-hide-obsidian-status', 'tree-obsidian-peek', 'tree-font-on', 'tree-size-on', ...this.themeClasses());
+    document.body.removeClass('tree-focus', 'tree-typewriter', 'tree-just-write', 'tree-hide-obsidian-status', 'tree-hide-extras', 'tree-obsidian-peek', 'tree-font-on', 'tree-size-on', ...this.themeClasses());
     document.body.style.removeProperty('--tree-font');
     document.body.style.removeProperty('--tree-font-size');
     document.body.style.removeProperty('--tree-line-length');
@@ -150,6 +156,7 @@ export default class TreePlugin extends Plugin {
     body.style.setProperty('--tree-line-length', s.lineLength + 'ch');
     body.toggleClass('tree-typewriter', s.typewriter);
     body.toggleClass('tree-hide-obsidian-status', s.statusLine && s.hideObsidianStatus);
+    body.toggleClass('tree-hide-extras', s.hideExtras || this.focusHidExtras);
     this.app.workspace.updateOptions();   // re-run editor extensions so zen/typewriter changes show at once
   }
 
@@ -178,6 +185,11 @@ export default class TreePlugin extends Plugin {
     if (on === this.focusActive) return;
     this.focusActive = on;
     document.body.toggleClass('tree-focus', on);
+    // Focus mode hides properties and mentions too, and brings them back on the way out,
+    // unless they were already hidden going in
+    this.focusHidExtras = on && !this.settings.hideExtras;
+    this.applyAppearance();
+    this.attachStatus();
     if (on) {
       this.app.workspace.getActiveViewOfType(MarkdownView)?.editor.focus();
       this.status.typeMessage('focus mode.');
@@ -197,6 +209,15 @@ export default class TreePlugin extends Plugin {
     this.status.typeMessage('zen: ' + this.settings.zenGranularity + '.');
   }
 
+  // The ¶ (or Ctrl+Shift+H). Pressing it in focus mode is your call, so leaving focus mode won't undo it.
+  async toggleExtras() {
+    const hide = !document.body.hasClass('tree-hide-extras');
+    this.focusHidExtras = false;
+    this.settings.hideExtras = hide;
+    await this.saveSettings();
+    this.status.typeMessage(hide ? 'quiet mode on.' : 'quiet mode off.');
+  }
+
   async toggleTypewriter() {
     this.settings.typewriter = !this.settings.typewriter;
     await this.saveSettings();
@@ -208,7 +229,7 @@ export default class TreePlugin extends Plugin {
     const view = this.app.workspace.getActiveViewOfType(MarkdownView);
     if (!view?.file) return;
     this.settings.goal = target > 0
-      ? { target, baseline: countWords(view.editor.getValue()), path: view.file.path }
+      ? { target, baseline: countWords(noteBody(view.editor.getValue()).body), path: view.file.path }
       : null;
     await this.saveSettings();
   }

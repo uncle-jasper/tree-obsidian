@@ -1,7 +1,7 @@
 // Just Write (Tree's Ctrl/Cmd+Shift+J): 30 minutes with the look locked, or 500 new words in this note.
 import { MarkdownView } from 'obsidian';
 import type TreePlugin from './main';
-import { countWords } from './status';
+import { countWords, noteBody } from './status';
 
 const JW_MINUTES = 30;
 const JW_WORDS   = 500;
@@ -28,7 +28,7 @@ export class JustWrite {
     this.plugin.quick.close();
     this.plugin.settings.justWrite = {
       until: Date.now() + JW_MINUTES * 60 * 1000,
-      wordStart: countWords(view.editor.getValue()),
+      wordStart: countWords(noteBody(view.editor.getValue()).body),
       path: view.file.path,
     };
     await this.plugin.saveSettings();
@@ -52,7 +52,7 @@ export class JustWrite {
   // Called after you type: 500 new words in the Just Write note releases you early
   checkRelease(view: MarkdownView | null) {
     if (!this.active || !view?.file || view.file.path !== this.state!.path) return;
-    if (countWords(view.editor.getValue()) - this.state!.wordStart >= JW_WORDS) {
+    if (countWords(noteBody(view.editor.getValue()).body) - this.state!.wordStart >= JW_WORDS) {
       void this.end('500 words. you have earned your freedom.');
     }
   }

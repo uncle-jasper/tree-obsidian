@@ -37,7 +37,10 @@ npm run build   # tsc, esbuild, load smoke test (scripts/smoke.cjs), styles.css
 
 ## Decisions already made
 
-- **Status line:** Aa alone on the left; reading time or goal in the middle; word count, character count and cursor position on the right.
+- **Status line:** Aa and ¶ on the left; reading time or goal in the middle; word count, character count and cursor position on the right.
+  - Counts, reading time, goal, milestones, Just Write and the line number cover only what's written: properties are left out (`noteBody()` in `status.ts`). Mentions aren't part of the note's text.
+- **Quiet mode, ¶ (Ctrl+Shift+H on Mac and iPad):** says "quiet mode on." / "quiet mode off." (not when focus mode does it), and hides properties and linked/unlinked mentions in every note, and stays until pressed again. Focus mode hides them too and shows them on the way out, unless they were already hidden going in. Pressing ¶ during focus mode sticks. While on, the note keeps Tree's 6rem under the last line (also when a note has no mentions).
+- **Bottom room:** CodeMirror keeps the line you're typing 80px above the status line, as Tree's `ensureCursorPadding()` does, quiet mode or not. Bottom only, by choice (Tree also does the top). Not in typewriter mode.
   - Obsidian's own status bar is hidden, and appears only while hovering the faint ⋯ at the far right.
 - **Word goal:** set by clicking the word count or with Ctrl+Shift+W (Mac only). It belongs to one note, and shows "200 / 500 words" in the middle.
 - **Amber CRT and Doogie Journal:** never in any menu. Konami and ABACABB both require `terminal-crt`.
@@ -53,7 +56,10 @@ npm run build   # tsc, esbuild, load smoke test (scripts/smoke.cjs), styles.css
   - iOS only: headings glow at 50%, bold text at 50%. WebKit blooms bold text about twice as bright as Chromium, so full-strength headings smeared on iPhone while matching body text on Mac. Check glow changes in both engines.
   - Tree and Ginkgo do the same in WebKit only (`@supports (font: -apple-system-body)`): editor headings at 60%, preview headings at 45%, bold at 50%.
 - **Glow themes (Moonwalker, Terminal, Terminal CRT, Amber CRT):** every text glow follows the text color (`currentColor`, or `color-mix(in srgb, currentColor N%, transparent)` for a fainter one), so dim text never sits under a brighter glow and blurs. Applies in all three apps. Terminal links are `#7dff7d`, Amber CRT links `#ffd27a`. Doogie Journal has no glow.
-- **Bold:** drawn as Tree draws it, weight 700 plus a 0.4px `-webkit-text-stroke`, while a Tree font is on. Most bundled fonts have no bold face, and Chromium's synthetic bold barely shows.
+- **Bold:** drawn as Tree draws it, weight 700 plus a 0.6px `-webkit-text-stroke`, the same as bold in the Tree and Ginkgo editors, while a Tree font is on. Most bundled fonts have no bold face, and Chromium's synthetic bold barely shows.
+  - Known differences, left for now. Dan may want all three in line later:
+    - Reading view bold is 0.6px here; Tree and Ginkgo's preview bold is 0.4px.
+    - Tree and Ginkgo give H4 to H6 a 0.4px stroke (`.cm-tree-h4, .cm-tree-h5, .cm-tree-h6`). The plugin gives headings none.
 - **Focus mode on desktop:** the ribbon waits off the left edge and slides out on hover. Its focus icon is a way out without Escape.
 - **Skipped on purpose:** syntax dimming, smart punctuation, heading shortcuts, dictionary, tabs, library, preview/split, find/replace, and a ✎ port of Tree's annotations. Dan uses Obsidian's `%%` comments.
 

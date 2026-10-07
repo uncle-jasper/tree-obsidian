@@ -47,17 +47,27 @@ export interface StatusHooks {
   onQuick(anchor: HTMLElement): void;
   onSetGoal(target: number): void;       // 0 clears
   onPeekObsidian(on: boolean): void;     // the ⋯ that brings up Obsidian's own status bar
+  onToggleExtras(): void;                // the ¶ that hides properties and mentions
 }
 
 const pick = (list: string[]) => list[Math.floor(Math.random() * list.length)];
 
 export const countWords = (s: string) => (s.trim() === '' ? 0 : s.trim().split(/\s+/).filter(Boolean).length);
+
+// What you've written: the note without its properties (the --- block at the top).
+// Linked and unlinked mentions aren't part of the note's text, so they never count anyway.
+const FRONTMATTER = /^---\r?\n(?:[\s\S]*?\r?\n)?---[ \t]*(?:\r?\n|$)/;
+export function noteBody(text: string) {
+  const fm = text.match(FRONTMATTER)?.[0] ?? '';
+  return { body: text.slice(fm.length), lines: fm.split('\n').length - 1 };
+}
 const plural = (n: number, word: string) => n + ' ' + word + (n !== 1 ? 's' : '');
 
 // One status line, moved to whichever markdown leaf is active.
 export class StatusLine {
   el: HTMLElement;
   private words: HTMLElement;
+  private extras: HTMLElement;
   private chars: HTMLElement;
   private centre: HTMLElement;
   private cursor: HTMLElement;
@@ -80,6 +90,8 @@ export class StatusLine {
     const left = this.el.createDiv({ cls: 'tree-stat-left' });
     const quick = left.createSpan({ cls: 'tree-quick-toggle', text: 'Aa', attr: { 'aria-label': 'Theme and font' } });
     quick.onclick = () => { if (!document.body.hasClass('tree-just-write')) hooks.onQuick(this.el); };
+    this.extras = left.createSpan({ cls: 'tree-extras-toggle', text: '¶' });
+    this.extras.onclick = () => hooks.onToggleExtras();
     this.centre = this.el.createDiv({ cls: 'tree-stat-centre' });
     this.msg    = this.el.createDiv({ cls: 'tree-stat-msg' });
     const right = this.el.createDiv({ cls: 'tree-stat-right' });
@@ -135,7 +147,7 @@ export class StatusLine {
     this.view = view;
     const s      = this.getSettings();
     const editor = view.editor;
-    const text   = editor.getValue();
+    const { body: text, lines: fmLines } = noteBody(editor.getValue());
     const words  = countWords(text);
 
     const path = view.file?.path ?? null;
@@ -168,12 +180,14 @@ export class StatusLine {
     }
     this.goalBar.toggleClass('is-active', !!goal);
 
-    const editing = view.getMode() === 'source';
+    // Lines count from the first line under the properties; inside the properties there's no position
+    const pos = editor.getCursor();
+    const editing = view.getMode() === 'source' && pos.line >= fmLines;
     this.cursor.toggle(s.showCursor && editing);
-    if (editing) {
-      const pos = editor.getCursor();
-      this.cursor.setText('ln ' + (pos.line + 1) + ', col ' + (pos.ch + 1));
-    }
+    if (editing) this.cursor.setText('ln ' + (pos.line - fmLines + 1) + ', col ' + (pos.ch + 1));
+
+    this.extras.toggleClass('is-on', document.body.hasClass('tree-hide-extras'));
+    this.extras.setAttr('aria-label', document.body.hasClass('tree-hide-extras') ? 'Turn quiet mode off' : 'Turn quiet mode on (hides properties and mentions)');
   }
 
   // Tree's updateGoalBar(): a message the moment you cross the target
