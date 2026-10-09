@@ -77,7 +77,7 @@ body.tree-hide-obsidian-status:not(.is-mobile):not(.tree-focus) .tree-peek-toggl
 .tree-stat-words:hover { color: var(--text-normal); }
 .tree-goal-input {
   all: unset;
-  width: 7ch;
+  width: 11ch;   /* fits the "500 or 25m" placeholder */
   font: inherit;
   color: var(--text-normal);
   border-bottom: 1px solid var(--text-muted);
