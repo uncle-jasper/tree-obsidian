@@ -2,7 +2,7 @@ import { App, PluginSettingTab, Setting } from 'obsidian';
 import type TreePlugin from './main';
 import type { CustomColors } from './custom';
 import type { JustWriteState } from './justwrite';
-import type { WordGoal } from './status';
+import type { TimeGoal, WordGoal } from './status';
 import { WP_SECRET_ID } from './wordpress';
 
 export interface TreeSettings {
@@ -23,6 +23,7 @@ export interface TreeSettings {
   tabOut: boolean;
   justWrite: JustWriteState | null;
   goal: WordGoal | null;
+  timeGoal: TimeGoal | null;   // one goal at a time: setting either clears the other
   wpUrl: string;
   wpUser: string;   // the application password lives in Obsidian's secure storage, not here
   secretReturn: string;   // the terminal theme to go "back to green" to
@@ -48,6 +49,7 @@ export const DEFAULT_SETTINGS: TreeSettings = {
   tabOut: true,
   justWrite: null,
   goal: null,
+  timeGoal: null,
   wpUrl: '',
   wpUser: '',
   secretReturn: 'terminal',

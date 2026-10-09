@@ -41,16 +41,47 @@ const goalMessages = [
 ];
 const fmtGoal = (n: number) => (n >= 1000 ? (n / 1000).toFixed(n % 1000 ? 1 : 0) + 'k' : String(n));
 
+// Time goal messages (not in Tree's word goal pool; written for the time goal)
+export const timeMessages = [
+  'that\'s your time. well done.',
+  'you stayed with it.',
+  'time reached. take a moment.',
+  'you showed up. that\'s the work.',
+];
+
 export interface WordGoal { target: number; baseline: number; path: string; }
+// Counts only while its note is in front: see tickTimeGoal() in main.ts
+export interface TimeGoal { minutes: number; spentMs: number; path: string; }
+
+export type GoalInput = { words: number } | { minutes: number } | { clear: true };
+
+// The goal box takes both: 500 is words; 25m, 25 min, 1h, 1h30m, 90m and 1:30 (h:mm) are time; 0 clears
+export function parseGoal(raw: string): GoalInput | null {
+  const s = raw.trim().toLowerCase().replace(/\s+/g, '');
+  if (s === '' || /^0+$/.test(s)) return { clear: true };
+  if (/^\d+$/.test(s)) return { words: Math.min(99999, Number(s)) };
+  let m = s.match(/^(\d+):([0-5]\d)$/);
+  if (m) return minutesOrNull(Number(m[1]) * 60 + Number(m[2]));
+  m = s.match(/^(?:(\d+)h(?:ours?|rs?)?)?(?:(\d+)(?:m(?:in(?:ute)?s?)?)?)?$/);   // the m is optional after hours: 1h30
+  if (m && (m[1] || m[2])) return minutesOrNull(Number(m[1] ?? 0) * 60 + Number(m[2] ?? 0));
+  return null;
+}
+const minutesOrNull = (n: number): GoalInput => (n > 0 ? { minutes: Math.min(5999, n) } : { clear: true });
+
+// "25 minutes", "1 hour", "1 hour 30 minutes"
+export function fmtMinutes(n: number) {
+  const h = Math.floor(n / 60), m = n % 60;
+  return [h ? plural(h, 'hour') : '', m || !h ? plural(m, 'minute') : ''].filter(Boolean).join(' ');
+}
 
 export interface StatusHooks {
   onQuick(anchor: HTMLElement): void;
-  onSetGoal(target: number): void;       // 0 clears
+  onSetGoal(goal: GoalInput): void;
   onPeekObsidian(on: boolean): void;     // the ⋯ that brings up Obsidian's own status bar
   onToggleExtras(): void;                // the ¶ that hides properties and mentions
 }
 
-const pick = (list: string[]) => list[Math.floor(Math.random() * list.length)];
+export const pick = (list: string[]) => list[Math.floor(Math.random() * list.length)];
 
 export const countWords = (s: string) => (s.trim() === '' ? 0 : s.trim().split(/\s+/).filter(Boolean).length);
 
@@ -95,7 +126,7 @@ export class StatusLine {
     this.centre = this.el.createDiv({ cls: 'tree-stat-centre' });
     this.msg    = this.el.createDiv({ cls: 'tree-stat-msg' });
     const right = this.el.createDiv({ cls: 'tree-stat-right' });
-    this.words  = right.createSpan({ cls: 'tree-stat-words', attr: { 'aria-label': 'Set a word goal' } });
+    this.words  = right.createSpan({ cls: 'tree-stat-words', attr: { 'aria-label': 'Set a word or time goal' } });
     this.words.onclick = () => this.editGoal();
     this.chars  = right.createSpan();
     this.cursor = right.createSpan();
@@ -106,24 +137,31 @@ export class StatusLine {
     this.goalBar = this.el.createDiv({ cls: 'tree-goal-bar' });
   }
 
-  // Click the word count (or Ctrl+Shift+W): it turns into a number box. Enter sets, 0 clears, Escape cancels.
-  editGoal() {
+  // Click the word count (or Ctrl+Shift+W): it turns into a box. 500 sets words, 25m sets time,
+  // Enter sets, 0 clears, Escape cancels. suffix = typed after the cursor (the time goal command's "m").
+  editGoal(suffix = '') {
     if (this.editingGoal || !this.el.isConnected) return;
     this.editingGoal = true;
-    const goal = this.getSettings().goal;
+    const { goal, timeGoal } = this.getSettings();
     this.words.empty();
+    // text, not number, so the iPad keyboard has letters for "m" and "h"
     const input = this.words.createEl('input', {
       cls: 'tree-goal-input',
-      attr: { type: 'number', min: '0', max: '99999', placeholder: 'goal' },
+      attr: { type: 'text', placeholder: '500 or 25m', autocomplete: 'off', autocapitalize: 'off', spellcheck: 'false' },
     });
-    if (goal && goal.path === this.notePath) input.value = String(goal.target);
+    if (suffix) input.value = suffix;
+    else if (timeGoal && timeGoal.path === this.notePath) input.value = timeGoal.minutes + 'm';
+    else if (goal && goal.path === this.notePath) input.value = String(goal.target);
     const done = (save: boolean) => {
       if (!this.editingGoal) return;
+      let parsed: GoalInput | null = null;
+      if (save && !(parsed = parseGoal(input.value))) { input.addClass('is-invalid'); return; }   // stays open
       this.editingGoal = false;
-      if (save) this.hooks.onSetGoal(Math.max(0, Math.floor(Number(input.value)) || 0));
+      if (parsed) this.hooks.onSetGoal(parsed);
       input.remove();
       this.refresh(this.view);
     };
+    input.oninput = () => input.removeClass('is-invalid');
     input.onkeydown = e => {
       if (e.key === 'Enter') { e.preventDefault(); done(true); }
       else if (e.key === 'Escape') { e.preventDefault(); e.stopPropagation(); done(false); }
@@ -131,6 +169,7 @@ export class StatusLine {
     input.onblur = () => done(false);
     input.onclick = e => e.stopPropagation();
     input.focus();
+    input.setSelectionRange(0, suffix ? 0 : input.value.length);
   }
 
   private view: MarkdownView | null = null;
@@ -168,9 +207,14 @@ export class StatusLine {
     this.chars.toggle(s.showChars);
     this.chars.setText(plural(text.length, 'char'));
 
-    // A word goal on this note takes the middle (and the reading time steps aside), as in the plan
+    // A goal on this note takes the middle (and the reading time steps aside), as in the plan
     const goal = s.goal && s.goal.path === path ? s.goal : null;
-    if (goal) {
+    const timeGoal = s.timeGoal && s.timeGoal.path === path ? s.timeGoal : null;
+    if (timeGoal) {
+      // whole minutes only, so nothing ticks at you
+      this.centre.setText(Math.floor(timeGoal.spentMs / 60000) + ' / ' + timeGoal.minutes + ' min');
+      this.goalBar.style.width = Math.min(100, (timeGoal.spentMs / (timeGoal.minutes * 60000)) * 100) + '%';
+    } else if (goal) {
       const session = Math.max(0, words - goal.baseline);
       this.centre.setText(session + ' / ' + fmtGoal(goal.target) + ' words');
       this.goalBar.style.width = Math.min(100, (session / goal.target) * 100) + '%';
@@ -178,7 +222,7 @@ export class StatusLine {
       const mins = Math.ceil(words / 200);
       this.centre.setText(s.showReadTime && words > 50 ? mins + ' min read' : '');
     }
-    this.goalBar.toggleClass('is-active', !!goal);
+    this.goalBar.toggleClass('is-active', !!(goal || timeGoal));
 
     // Lines count from the first line under the properties; inside the properties there's no position
     const pos = editor.getCursor();

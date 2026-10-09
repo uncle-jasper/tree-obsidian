@@ -2,7 +2,7 @@ import { MarkdownView, Platform, Plugin, setIcon } from 'obsidian';
 import { EditorView, drawSelection } from '@codemirror/view';
 import { Transaction } from '@codemirror/state';
 import { DEFAULT_SETTINGS, SECRET_THEMES, THEMES, TreeSettings, TreeSettingTab } from './settings';
-import { StatusLine, countWords, noteBody } from './status';
+import { GoalInput, StatusLine, countWords, fmtMinutes, noteBody, pick, timeMessages } from './status';
 import { QuickPanel } from './quick';
 import { CUSTOM_VARS, customPalette } from './custom';
 import { JustWrite } from './justwrite';
@@ -32,7 +32,7 @@ export default class TreePlugin extends Plugin {
     new WordPress(this).register();
     this.status = new StatusLine(() => this.settings, {
       onQuick: anchor => this.quick.toggle(anchor),
-      onSetGoal: target => this.setGoal(target),
+      onSetGoal: goal => this.setGoal(goal),
       onPeekObsidian: on => this.peekObsidian(on),
       onToggleExtras: () => this.toggleExtras(),
     });
@@ -71,6 +71,8 @@ export default class TreePlugin extends Plugin {
       }
       this.attachStatus();
       this.justWrite.resume();
+      this.lastTick = Date.now();
+      this.registerInterval(window.setInterval(() => this.tickTimeGoal(), 5000));
       window.setTimeout(() => this.status.welcome(), 800);
     });
 
@@ -81,9 +83,18 @@ export default class TreePlugin extends Plugin {
       this.quick.toggle(this.status.el.isConnected ? this.status.el : document.body);
     } });
     // Tree's Ctrl+Shift+W. Free on Mac (Obsidian closes windows with Cmd+Shift+W); elsewhere Ctrl is Mod, so no default.
-    this.addCommand({ id: 'word-goal', name: 'Set word goal for this note',
+    this.addCommand({ id: 'word-goal', name: 'Set word or time goal for this note',
       hotkeys: Platform.isMacOS ? [{ modifiers: ['Ctrl', 'Shift'], key: 'W' }] : [],
       callback: () => this.status.editGoal() });
+    this.addCommand({ id: 'time-goal', name: 'Set time goal for this note', callback: () => this.status.editGoal('m') });
+    // A goal belongs to its note, so it follows the note when it's renamed or moved
+    this.registerEvent(this.app.vault.on('rename', (file, oldPath) => {
+      const { goal, timeGoal } = this.settings;
+      if (goal?.path !== oldPath && timeGoal?.path !== oldPath) return;
+      if (goal?.path === oldPath) goal.path = file.path;
+      if (timeGoal?.path === oldPath) timeGoal.path = file.path;
+      void this.saveData(this.settings);
+    }));
     this.addCommand({ id: 'just-write', name: 'Just Write (30 minutes or 500 words)', hotkeys: [{ modifiers: ['Mod', 'Shift'], key: 'J' }],
       callback: () => this.justWrite.start() });
     this.addCommand({ id: 'toggle-zen', name: 'Toggle zen mode', callback: () => this.toggleZen() });
@@ -224,14 +235,40 @@ export default class TreePlugin extends Plugin {
     this.status.typeMessage(this.settings.typewriter ? 'typewriter on.' : 'typewriter off.');
   }
 
-  // Word goal (Tree's setGoal): counts from now, in this note only
-  async setGoal(target: number) {
+  // Word goal (Tree's setGoal): counts from now, in this note only. A time goal works the same way,
+  // and a note has one or the other.
+  async setGoal(input: GoalInput) {
     const view = this.app.workspace.getActiveViewOfType(MarkdownView);
     if (!view?.file) return;
-    this.settings.goal = target > 0
-      ? { target, baseline: countWords(noteBody(view.editor.getValue()).body), path: view.file.path }
+    const path = view.file.path;
+    this.settings.goal = 'words' in input
+      ? { target: input.words, baseline: countWords(noteBody(view.editor.getValue()).body), path }
       : null;
+    this.settings.timeGoal = 'minutes' in input ? { minutes: input.minutes, spentMs: 0, path } : null;
+    this.lastTick = Date.now();
     await this.saveSettings();
+    this.status.typeMessage('words' in input ? 'word goal: ' + input.words + '.'
+      : 'minutes' in input ? 'time goal: ' + fmtMinutes(input.minutes) + '.'
+      : 'goal cleared.');
+  }
+
+  // Time goal: every 5s, add the time since the last tick, but only while the goal's note is the active one
+  // and Obsidian is the front window. Locking the screen takes focus away; sleep leaves a gap, which is dropped.
+  private lastTick = 0;
+  private tickTimeGoal() {
+    const now = Date.now(), gap = now - this.lastTick;
+    this.lastTick = now;
+    const g = this.settings.timeGoal;
+    if (!g || gap > 10000 || document.visibilityState !== 'visible' || !document.hasFocus()) return;
+    if (this.app.workspace.getActiveViewOfType(MarkdownView)?.file?.path !== g.path) return;
+    const target = g.minutes * 60000, before = g.spentMs;
+    g.spentMs += gap;
+    if (before < target && g.spentMs >= target) this.status.typeMessage(pick(timeMessages));
+    // The status line shows whole minutes, so refresh (and save) only when the minute turns over
+    if (Math.floor(before / 60000) !== Math.floor(g.spentMs / 60000)) {
+      this.status.refresh(this.app.workspace.getActiveViewOfType(MarkdownView));
+      void this.saveData(this.settings);
+    }
   }
 
   // Obsidian's status bar shows while the mouse is on Tree's ⋯ or on the bar itself

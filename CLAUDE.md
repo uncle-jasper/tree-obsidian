@@ -43,6 +43,11 @@ npm run build   # tsc, esbuild, load smoke test (scripts/smoke.cjs), styles.css
 - **Bottom room:** CodeMirror keeps the line you're typing 80px above the status line, as Tree's `ensureCursorPadding()` does, quiet mode or not. Bottom only, by choice (Tree also does the top). Not in typewriter mode.
   - Obsidian's own status bar is hidden, and appears only while hovering the faint ⋯ at the far right.
 - **Word goal:** set by clicking the word count or with Ctrl+Shift+W (Mac only). It belongs to one note, and shows "200 / 500 words" in the middle.
+- **Time goal:** the same box takes time: `25m`, `25 min`, `1h`, `1h30m`, `90m`, `1:30` (h:mm). `500` is still words, `0` clears.
+  - A note has one goal at a time. Setting either kind replaces the other.
+  - Shows "12 / 25 min" in whole minutes (nothing ticks) and fills the same bar. After the target it keeps counting.
+  - It counts only while its note is active and Obsidian is the front window and visible: a 5s tick, with gaps over 10s dropped. Switching notes or apps, locking the screen and sleep all pause it. Typing isn't required, on purpose: it's for time spent with the page, not words produced.
+  - Setting a goal says "word goal: 500." / "time goal: 25 minutes." / "goal cleared." Tree has the same time goal.
 - **Amber CRT and Doogie Journal:** never in any menu. Konami and ABACABB both require `terminal-crt`.
 - **WordPress:**
   - Title: the opening `# Heading`, else the file name.
