@@ -74,6 +74,13 @@ export function fmtMinutes(n: number) {
   return [h ? plural(h, 'hour') : '', m || !h ? plural(m, 'minute') : ''].filter(Boolean).join(' ');
 }
 
+// The time goal in the status line: "12 / 25 min" under an hour; from an hour up, "12m / 1h 30m", "1h 15m / 2h"
+export function fmtTimeGoal(spent: number, target: number) {
+  if (target < 60) return spent + ' / ' + target + ' min';
+  const hm = (n: number) => [n >= 60 ? Math.floor(n / 60) + 'h' : '', n % 60 || n < 60 ? (n % 60) + 'm' : ''].filter(Boolean).join(' ');
+  return hm(spent) + ' / ' + hm(target);
+}
+
 export interface StatusHooks {
   onQuick(anchor: HTMLElement): void;
   onSetGoal(goal: GoalInput): void;
@@ -212,7 +219,7 @@ export class StatusLine {
     const timeGoal = s.timeGoal && s.timeGoal.path === path ? s.timeGoal : null;
     if (timeGoal) {
       // whole minutes only, so nothing ticks at you
-      this.centre.setText(Math.floor(timeGoal.spentMs / 60000) + ' / ' + timeGoal.minutes + ' min');
+      this.centre.setText(fmtTimeGoal(Math.floor(timeGoal.spentMs / 60000), timeGoal.minutes));
       this.goalBar.style.width = Math.min(100, (timeGoal.spentMs / (timeGoal.minutes * 60000)) * 100) + '%';
     } else if (goal) {
       const session = Math.max(0, words - goal.baseline);

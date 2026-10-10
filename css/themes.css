@@ -16,7 +16,8 @@ body.tree-theme-terminal-crt,
 body.tree-theme-amber-crt,
 body.tree-theme-doogie-journal,
 body.tree-theme-custom,
-body.tree-theme-custom2 {
+body.tree-theme-custom2,
+body.tree-theme-custom3 {
   --background-primary: var(--tree-bg);
   --background-primary-alt: var(--tree-bg);
   --background-secondary: var(--tree-surface);
@@ -55,6 +56,19 @@ body[class*="tree-theme-"] .cm-dropCursor {
 /* CodeMirror swaps cm-blink/cm-blink2 inline to restart the blink on each keystroke; mirror that */
 body[class*="tree-theme-"] .cm-focused > .cm-scroller > .cm-cursorLayer[style*="cm-blink"] { animation-name: tree-blink !important; }
 body[class*="tree-theme-"] .cm-focused > .cm-scroller > .cm-cursorLayer[style*="cm-blink2"] { animation-name: tree-blink2 !important; }
+
+/* ── Custom themes: block and underline cursors, the CRT and Doogie Journal shapes without the glow.
+      shapeCursorExtension() in editor.ts draws them (.tree-cursor-shape) the size of the character they sit on,
+      and CodeMirror's bar steps aside. body.tree-cursor-* is set while a custom theme with one is on, and by
+      Terminal CRT, Amber CRT (block) and Doogie Journal (underline), which color theirs further down.
+      The block is tinted, not solid, so the letter under it stays readable. ── */
+.tree-cursor-layer { pointer-events: none; animation: tree-blink 1s infinite; }
+.tree-cursor-shape { display: none; }
+.cm-focused > .cm-scroller > .tree-cursor-layer .tree-cursor-shape { display: block; }
+body.tree-cursor-block .tree-cursor-shape { background-color: color-mix(in srgb, var(--tree-accent) 40%, transparent); }
+body.tree-cursor-underline .tree-cursor-shape { background-color: var(--tree-accent); }
+body.tree-cursor-block .cm-cursorLayer .cm-cursor,
+body.tree-cursor-underline .cm-cursorLayer .cm-cursor { display: none !important; }
 
 body.tree-theme-parchment {
   --tree-bg: #f5f0e8; --tree-surface: #ede8de; --tree-text: #2c2416;
@@ -224,6 +238,19 @@ body.tree-theme-doogie-journal .cm-dropCursor {
   box-shadow: none !important;
   transform: none !important;
 }
+
+/* The CRT blocks and Doogie Journal's underline are drawn by shapeCursorExtension() too, so they fit headings
+   and formatted text. The rules above now only shape the drop cursor. Solid here, glow and all, unlike the
+   tinted block of a custom theme. */
+body.tree-theme-terminal-crt.tree-cursor-block .tree-cursor-shape {
+  background-color: #33ff33;
+  box-shadow: 0 0 10px rgba(51,255,51,0.55), 0 0 3px rgba(51,255,51,0.7);
+}
+body.tree-theme-amber-crt.tree-cursor-block .tree-cursor-shape {
+  background-color: #ffb000;
+  box-shadow: 0 0 10px rgba(255,176,0,0.55), 0 0 3px rgba(255,176,0,0.7);
+}
+body.tree-theme-doogie-journal.tree-cursor-underline .tree-cursor-shape { background-color: var(--text-normal); }
 
 /* ── CRT scanlines + flicker, shared by the CRT-flavored themes ── */
 @keyframes tree-crt-flicker {

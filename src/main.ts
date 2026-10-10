@@ -4,11 +4,11 @@ import { Transaction } from '@codemirror/state';
 import { DEFAULT_SETTINGS, SECRET_THEMES, THEMES, TreeSettings, TreeSettingTab } from './settings';
 import { GoalInput, StatusLine, countWords, fmtMinutes, noteBody, pick, timeMessages } from './status';
 import { QuickPanel } from './quick';
-import { CUSTOM_VARS, customPalette } from './custom';
+import { CUSTOM_KEYS, CUSTOM_VARS, CursorStyle, customPalette, isCustom } from './custom';
 import { JustWrite } from './justwrite';
 import { Eggs } from './eggs';
 import { WordPress } from './wordpress';
-import { autoPairExtension, bottomScrollMargin, tabOutExtension, typewriterExtension, zenExtension } from './editor';
+import { autoPairExtension, bottomScrollMargin, shapeCursorExtension, tabOutExtension, typewriterExtension, zenExtension } from './editor';
 
 export default class TreePlugin extends Plugin {
   settings!: TreeSettings;
@@ -19,6 +19,7 @@ export default class TreePlugin extends Plugin {
   focusActive = false;
   private focusHidExtras = false;   // focus mode hid properties and mentions, so leaving it shows them again
   private exitEl: HTMLElement | null = null;
+  private focusTabsEl: HTMLElement | null = null;   // the pane focus mode keeps on screen
   private refreshQueued = false;
   private editQueued = false;
 
@@ -40,11 +41,11 @@ export default class TreePlugin extends Plugin {
     this.addSettingTab(this.settingTab);
 
     // Status line follows the active note
-    this.registerEvent(this.app.workspace.on('active-leaf-change', () => this.attachStatus()));
-    this.registerEvent(this.app.workspace.on('layout-change', () => { this.attachStatus(); this.justWrite.apply(); }));
+    this.registerEvent(this.app.workspace.on('active-leaf-change', () => { this.attachStatus(); this.markFocusTabs(); }));
+    this.registerEvent(this.app.workspace.on('layout-change', () => { this.attachStatus(); this.justWrite.apply(); this.markFocusTabs(); }));
     // Make sure the editor draws its own cursor (so Tree's cursor styles apply), blinking at Tree's 1s rate
     this.registerEditorExtension(drawSelection({ cursorBlinkRate: 1000 }));
-    this.registerEditorExtension([zenExtension(() => this.settings), typewriterExtension(() => this.settings), tabOutExtension(() => this.settings), autoPairExtension(), bottomScrollMargin()]);
+    this.registerEditorExtension([zenExtension(() => this.settings), typewriterExtension(() => this.settings), tabOutExtension(() => this.settings), autoPairExtension(), bottomScrollMargin(), shapeCursorExtension(() => this.cursorStyle())]);
     this.registerEditorExtension(EditorView.updateListener.of(u => {
       if (!(u.docChanged || u.selectionSet)) return;
       // Only your own typing counts toward milestones and idle nudges, not sync or other plugins
@@ -124,7 +125,8 @@ export default class TreePlugin extends Plugin {
     this.quick.close();
     this.status.destroy();
     this.exitEl?.remove();
-    document.body.removeClass('tree-focus', 'tree-typewriter', 'tree-just-write', 'tree-hide-obsidian-status', 'tree-hide-extras', 'tree-obsidian-peek', 'tree-font-on', 'tree-size-on', ...this.themeClasses());
+    this.focusTabsEl?.removeClass('tree-focus-tabs');
+    document.body.removeClass('tree-focus', 'tree-extras-by-focus', 'tree-typewriter', 'tree-just-write', 'tree-hide-obsidian-status', 'tree-hide-extras', 'tree-obsidian-peek', 'tree-font-on', 'tree-size-on', 'tree-cursor-block', 'tree-cursor-underline', ...this.themeClasses());
     document.body.style.removeProperty('--tree-font');
     document.body.style.removeProperty('--tree-font-size');
     document.body.style.removeProperty('--tree-line-length');
@@ -135,8 +137,7 @@ export default class TreePlugin extends Plugin {
     const data = await this.loadData();
     this.settings = Object.assign({}, DEFAULT_SETTINGS, data);
     // fresh copies, so editing custom colors never touches the defaults
-    this.settings.custom  = Object.assign({}, DEFAULT_SETTINGS.custom,  data?.custom);
-    this.settings.custom2 = Object.assign({}, DEFAULT_SETTINGS.custom2, data?.custom2);
+    for (const key of CUSTOM_KEYS) this.settings[key] = Object.assign({}, DEFAULT_SETTINGS[key], data?.[key]);
     delete (this.settings as any).focusWidth;   // replaced by lineLength in 0.2
   }
 
@@ -150,15 +151,25 @@ export default class TreePlugin extends Plugin {
     return [...Object.keys(THEMES), ...Object.keys(SECRET_THEMES)].filter(Boolean).map(t => 'tree-theme-' + t);
   }
 
+  // A custom theme picks its cursor. The CRT themes have their block and Doogie Journal its underline; the rest use the line.
+  private cursorStyle(): CursorStyle {
+    const s = this.settings;
+    if (s.theme === 'terminal-crt' || s.theme === 'amber-crt') return 'block';
+    if (s.theme === 'doogie-journal') return 'underline';
+    return (isCustom(s.theme) && s[s.theme].cursor) || 'line';
+  }
+
   applyAppearance() {
     const s = this.settings;
     const body = document.body;
     body.removeClass(...this.themeClasses());
     if (s.theme) body.addClass('tree-theme-' + s.theme);
     CUSTOM_VARS.forEach(v => body.style.removeProperty(v));
-    if (s.theme === 'custom' || s.theme === 'custom2') {
+    if (isCustom(s.theme)) {
       for (const [v, val] of Object.entries(customPalette(s[s.theme]))) body.style.setProperty(v, val);
     }
+    body.toggleClass('tree-cursor-block', this.cursorStyle() === 'block');
+    body.toggleClass('tree-cursor-underline', this.cursorStyle() === 'underline');
 
     body.toggleClass('tree-font-on', !!s.font);
     body.style.setProperty('--tree-font', s.font);
@@ -168,6 +179,7 @@ export default class TreePlugin extends Plugin {
     body.toggleClass('tree-typewriter', s.typewriter);
     body.toggleClass('tree-hide-obsidian-status', s.statusLine && s.hideObsidianStatus);
     body.toggleClass('tree-hide-extras', s.hideExtras || this.focusHidExtras);
+    body.toggleClass('tree-extras-by-focus', this.focusHidExtras);   // so other windows keep theirs
     this.app.workspace.updateOptions();   // re-run editor extensions so zen/typewriter changes show at once
   }
 
@@ -200,11 +212,23 @@ export default class TreePlugin extends Plugin {
     // unless they were already hidden going in
     this.focusHidExtras = on && !this.settings.hideExtras;
     this.applyAppearance();
+    this.markFocusTabs();
     this.attachStatus();
     if (on) {
       this.app.workspace.getActiveViewOfType(MarkdownView)?.editor.focus();
       this.status.typeMessage('focus mode.');
     }
+  }
+
+  // Focus mode shows one pane: the main window's most recent, even while the active note is in another window.
+  private markFocusTabs() {
+    const ws = this.app.workspace;
+    const leaf = this.focusActive ? ws.getMostRecentLeaf(ws.rootSplit) : null;
+    const el = leaf?.view.containerEl.closest<HTMLElement>('.workspace-tabs') ?? null;
+    if (el === this.focusTabsEl) return;
+    this.focusTabsEl?.removeClass('tree-focus-tabs');
+    el?.addClass('tree-focus-tabs');
+    this.focusTabsEl = el;
   }
 
   async toggleZen() {
@@ -253,20 +277,24 @@ export default class TreePlugin extends Plugin {
   }
 
   // Time goal: every 5s, add the time since the last tick, but only while the goal's note is the active one
-  // and Obsidian is the front window. Locking the screen takes focus away; sleep leaves a gap, which is dropped.
+  // and its Obsidian window (the main one or a popout) is in front. Locking the screen takes focus away;
+  // sleep leaves a gap, which is dropped.
   private lastTick = 0;
   private tickTimeGoal() {
     const now = Date.now(), gap = now - this.lastTick;
     this.lastTick = now;
     const g = this.settings.timeGoal;
-    if (!g || gap > 10000 || document.visibilityState !== 'visible' || !document.hasFocus()) return;
-    if (this.app.workspace.getActiveViewOfType(MarkdownView)?.file?.path !== g.path) return;
+    if (!g || gap > 10000) return;
+    const view = this.app.workspace.getActiveViewOfType(MarkdownView);
+    if (view?.file?.path !== g.path) return;
+    const doc = view.containerEl.ownerDocument;
+    if (doc.visibilityState !== 'visible' || !doc.hasFocus()) return;
     const target = g.minutes * 60000, before = g.spentMs;
     g.spentMs += gap;
     if (before < target && g.spentMs >= target) this.status.typeMessage(pick(timeMessages));
     // The status line shows whole minutes, so refresh (and save) only when the minute turns over
     if (Math.floor(before / 60000) !== Math.floor(g.spentMs / 60000)) {
-      this.status.refresh(this.app.workspace.getActiveViewOfType(MarkdownView));
+      this.status.refresh(view);
       void this.saveData(this.settings);
     }
   }

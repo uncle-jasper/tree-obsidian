@@ -1,4 +1,4 @@
-import { FONTS, SIZES, THEMES, TreeSettings, themeLabel } from './settings';
+import { FONTS, SIZES, THEMES, TreeSettings, themeName } from './settings';
 import type TreePlugin from './main';
 
 interface Option { key: string; label: string; }
@@ -9,7 +9,7 @@ interface Choice {
   options: Option[];
   get(s: TreeSettings): string;
   set(s: TreeSettings, key: string): void;
-  labelFor?: (key: string) => string;   // label for a current value not in options (a secret theme)
+  labelFor?: (s: TreeSettings, key: string) => string;   // a label that isn't fixed: a secret theme, or a custom theme's own name
   from?: (s: TreeSettings) => string; // where ‹ › step from when the current value isn't in options
 }
 
@@ -21,7 +21,7 @@ const CHOICES: Choice[] = [
     options: fromRecord(THEMES).map(o => (o.key === '' ? { key: '', label: 'none' } : o)),
     get: s => s.theme,
     set: (s, k) => { s.theme = k; },
-    labelFor: themeLabel,
+    labelFor: themeName,
     from: s => s.secretReturn,
   },
   {
@@ -117,7 +117,7 @@ export class QuickPanel {
       const row = this.el.createDiv({ cls: 'tree-quick-row' });
       row.createSpan({ cls: 'tree-quick-label', text: choice.label });
       row.createEl('button', { cls: 'tree-quick-arrow', text: '‹' }).onclick = () => this.pick(choice, step(-1));
-      const value = row.createEl('button', { cls: 'tree-quick-value' + (isOpen ? ' is-active' : ''), text: found >= 0 ? choice.options[i].label : (choice.labelFor?.(current) ?? current) });
+      const value = row.createEl('button', { cls: 'tree-quick-value' + (isOpen ? ' is-active' : ''), text: choice.labelFor?.(s, current) ?? (found >= 0 ? choice.options[i].label : current) });
       row.createEl('button', { cls: 'tree-quick-arrow', text: '›' }).onclick = () => this.pick(choice, step(1));
 
       // On/off rows just flip; everything else opens its list
@@ -130,7 +130,7 @@ export class QuickPanel {
       if (isOpen) {
         const list = this.el.createDiv({ cls: 'tree-quick-list' });
         for (const opt of choice.options) {
-          const item = list.createEl('button', { cls: 'tree-quick-item' + (opt.key === current ? ' is-current' : ''), text: opt.label });
+          const item = list.createEl('button', { cls: 'tree-quick-item' + (opt.key === current ? ' is-current' : ''), text: choice.labelFor?.(s, opt.key) ?? opt.label });
           item.onclick = () => { this.listOpen = null; this.pick(choice, opt.key); };
         }
         list.querySelector<HTMLElement>('.is-current')?.scrollIntoView({ block: 'nearest' });

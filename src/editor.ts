@@ -1,7 +1,8 @@
 // Zen mode (sentence / paragraph dimming) and typewriter scrolling, ported from Tree's CodeMirror plugins.
-import { Decoration, DecorationSet, EditorView, ViewPlugin, ViewUpdate, keymap } from '@codemirror/view';
-import { EditorSelection, EditorState, Prec, RangeSetBuilder, Transaction } from '@codemirror/state';
+import { Decoration, DecorationSet, EditorView, RectangleMarker, ViewPlugin, ViewUpdate, keymap, layer } from '@codemirror/view';
+import { EditorSelection, EditorState, Prec, RangeSetBuilder, Transaction, findClusterBreak } from '@codemirror/state';
 import type { TreeSettings } from './settings';
+import type { CursorStyle } from './custom';
 
 const zenDimMark  = Decoration.mark({ class: 'tree-zen-dim' });
 const zenDimLine  = Decoration.line({ class: 'tree-zen-dim-line' });
@@ -204,4 +205,44 @@ export function autoPairExtension() {
     });
     return true;
   }));
+}
+
+// Block and underline cursors, for custom themes, the CRT themes and Doogie Journal. CodeMirror's own cursor is a bar with no width, and a fixed
+// 1ch only fits body text in a monospace font. This draws one the size of the character it sits on, so it
+// lines up in headings, bold and proportional fonts. The bar is hidden meanwhile (themes.css).
+export function shapeCursorExtension(getStyle: () => CursorStyle) {
+  return layer({
+    above: true,
+    class: 'tree-cursor-layer',
+    update(u, dom) {
+      // restart the blink on each move, as CodeMirror does for its own cursor
+      if (u.docChanged || u.selectionSet) dom.style.animationName = dom.style.animationName === 'tree-blink' ? 'tree-blink2' : 'tree-blink';
+      return u.docChanged || u.selectionSet || u.geometryChanged || u.viewportChanged || u.focusChanged || u.transactions.some(tr => tr.reconfigured);
+    },
+    markers(view) {
+      const style = getStyle();
+      if (style === 'line') return [];
+      const box = view.scrollDOM.getBoundingClientRect();
+      const baseLeft = box.left - view.scrollDOM.scrollLeft, baseTop = box.top - view.scrollDOM.scrollTop;
+      const marks: RectangleMarker[] = [];
+      for (const range of view.state.selection.ranges) {
+        if (!range.empty) continue;
+        const at = view.coordsAtPos(range.head, 1);
+        if (!at) continue;
+        // as wide as the character ahead; at the end of a line, or before something that isn't text, a body-text character
+        let width = view.defaultCharacterWidth;
+        const line = view.state.doc.lineAt(range.head);
+        if (range.head < line.to) {
+          const next = view.coordsAtPos(line.from + findClusterBreak(line.text, range.head - line.from), -1);
+          if (next && Math.abs(next.top - at.top) < 2 && next.left - at.left > 1) width = next.left - at.left;
+        }
+        const height = at.bottom - at.top;
+        const thick = Math.max(2, Math.round(height * 0.09));   // the underline grows with a heading
+        marks.push(style === 'block'
+          ? new RectangleMarker('tree-cursor-shape', at.left - baseLeft, at.top - baseTop, width, height)
+          : new RectangleMarker('tree-cursor-shape', at.left - baseLeft, at.bottom - baseTop - thick, width, thick));
+      }
+      return marks;
+    },
+  });
 }

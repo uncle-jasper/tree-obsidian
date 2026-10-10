@@ -1,6 +1,6 @@
-import { App, PluginSettingTab, Setting } from 'obsidian';
+import { App, Notice, Platform, PluginSettingTab, Setting } from 'obsidian';
 import type TreePlugin from './main';
-import type { CustomColors } from './custom';
+import { CURSOR_STYLES, CUSTOM_KEYS, CustomColors, CustomKey, CursorStyle, isCustom, themeFileName, themeFromFile, themeToFile } from './custom';
 import type { JustWriteState } from './justwrite';
 import type { TimeGoal, WordGoal } from './status';
 import { WP_SECRET_ID } from './wordpress';
@@ -29,6 +29,7 @@ export interface TreeSettings {
   secretReturn: string;   // the terminal theme to go "back to green" to
   custom: CustomColors;
   custom2: CustomColors;
+  custom3: CustomColors;
 }
 
 export const DEFAULT_SETTINGS: TreeSettings = {
@@ -55,6 +56,7 @@ export const DEFAULT_SETTINGS: TreeSettings = {
   secretReturn: 'terminal',
   custom:  { bg: '#f5f0e8', text: '#2c2416', accent: '#8b6e4e' },   // Tree's defaults
   custom2: { bg: '#f5f0e8', text: '#2c2416', accent: '#8b6e4e' },
+  custom3: { bg: '#f5f0e8', text: '#2c2416', accent: '#8b6e4e' },
 };
 
 export const THEMES: Record<string, string> = {
@@ -72,6 +74,7 @@ export const THEMES: Record<string, string> = {
   'terminal-crt':    'terminal crt',
   custom:            'custom',
   custom2:           'custom 2',
+  custom3:           'custom 3',
 };
 
 // Easter-egg themes: never offered in a menu, only reached by code (see eggs.ts), as in Tree
@@ -81,6 +84,10 @@ export const SECRET_THEMES: Record<string, string> = {
 };
 
 export const themeLabel = (key: string) => (key === '' ? 'none' : THEMES[key] ?? SECRET_THEMES[key] ?? key);
+// A named custom theme goes by its name wherever themes are listed
+// with (C1) to (C3) after it, so it still reads as one of the custom themes
+export const themeName = (s: TreeSettings, key: string) =>
+  (isCustom(key) && s[key].name ? s[key].name + ' (C' + (CUSTOM_KEYS.indexOf(key) + 1) + ')' : themeLabel(key));
 
 export const FONTS: Record<string, string> = {
   '':                                     'Obsidian default',
@@ -96,7 +103,7 @@ export const FONTS: Record<string, string> = {
   "'Tree PrintChar21', monospace":        'Print Char 21',
 };
 
-export const SIZES = [0, 16, 18, 20, 22, 24, 26];
+export const SIZES = [0, 14, 16, 18, 20, 22, 24, 26];
 
 export class TreeSettingTab extends PluginSettingTab {
   constructor(app: App, private plugin: TreePlugin) {
@@ -117,7 +124,7 @@ export class TreeSettingTab extends PluginSettingTab {
     new Setting(containerEl)
       .setName('Theme')
       .setDesc('Tree palette. Works best with Obsidian\'s default theme underneath.')
-      .addDropdown(d => d.addOptions(THEMES)
+      .addDropdown(d => d.addOptions(Object.fromEntries(Object.keys(THEMES).map(k => [k, isCustom(k) ? themeName(s, k) : THEMES[k]])))
         // A secret theme shows as current while you're in it, but is never offered as a choice
         .addOptions(SECRET_THEMES[s.theme] ? { [s.theme]: SECRET_THEMES[s.theme] } : {})
         .setValue(s.theme).setDisabled(locked)
@@ -136,9 +143,19 @@ export class TreeSettingTab extends PluginSettingTab {
         d.setValue(String(s.fontSize)).setDisabled(locked).onChange(async v => { s.fontSize = Number(v); await save(); });
       });
 
-    for (const [key, name] of [['custom', 'Custom'], ['custom2', 'Custom 2']] as const) {
-      new Setting(containerEl).setName(name + ' theme').setHeading();
+    // Only the custom themes can be named, given a cursor, exported or imported over. The built-in ones are fixed.
+    for (const key of CUSTOM_KEYS) {
+      new Setting(containerEl).setName(THEMES[key].replace('c', 'C') + ' theme').setHeading();
       const colors = s[key];
+      new Setting(containerEl)
+        .setName('Name')
+        .setDesc('Shown in place of "' + THEMES[key] + '" wherever themes are listed.')
+        .addText(t => t.setPlaceholder(THEMES[key]).setValue(colors.name ?? '').setDisabled(locked).onChange(async v => {
+          colors.name = v.trim().slice(0, 24);
+          const option = containerEl.querySelector<HTMLOptionElement>('option[value="' + key + '"]');
+          if (option) option.textContent = themeName(s, key);
+          await save();
+        }));
       for (const [part, label] of [['bg', 'Background'], ['text', 'Text'], ['accent', 'Accent']] as const) {
         new Setting(containerEl)
           .setName(label)
@@ -149,6 +166,17 @@ export class TreeSettingTab extends PluginSettingTab {
             await save();
           }));
       }
+      new Setting(containerEl)
+        .setName('Cursor')
+        .setDesc('Line is Tree\'s own. Block is tinted, so the letter under it stays readable.')
+        .addDropdown(d => d.addOptions(Object.fromEntries(CURSOR_STYLES.map(c => [c, c])))
+          .setValue(colors.cursor ?? 'line').setDisabled(locked)
+          .onChange(async v => { colors.cursor = v as CursorStyle; await save(); }));
+      new Setting(containerEl)
+        .setName('Share')
+        .setDesc('Export saves this theme as a file. Import loads a theme file into this slot. The same file works in Tree and Ginkgo.')
+        .addButton(b => b.setButtonText('Export').onClick(() => this.exportTheme(key)))
+        .addButton(b => b.setButtonText('Import').setDisabled(locked).onClick(() => this.importTheme(key)));
     }
 
     new Setting(containerEl).setName('Status line').setHeading();
@@ -250,5 +278,38 @@ export class TreeSettingTab extends PluginSettingTab {
       .setName('Focus mode')
       .setDesc('Toggle with the ribbon icon or the "Tree: Toggle focus mode" command. Escape or the corner mark leaves it. '
         + 'The Aa at the end of the status line changes theme, font and size without opening settings.');
+  }
+
+  // Desktop hands you the file. Obsidian on iPad and iPhone can't, so there it goes into the vault.
+  private async exportTheme(key: CustomKey) {
+    const theme = this.plugin.settings[key];
+    const name = themeFileName(theme, THEMES[key]);
+    if (Platform.isMobile) {
+      await this.app.vault.adapter.write(name, themeToFile(theme));
+      new Notice('theme exported to your vault: ' + name);
+      return;
+    }
+    const url = URL.createObjectURL(new Blob([themeToFile(theme)], { type: 'application/json' }));
+    const a = document.body.createEl('a', { href: url, attr: { download: name } });
+    a.click();
+    a.remove();
+    window.setTimeout(() => URL.revokeObjectURL(url), 1000);
+  }
+
+  private importTheme(key: CustomKey) {
+    const input = document.body.createEl('input', { type: 'file', attr: { accept: '.json,application/json', style: 'display: none' } });
+    input.onchange = async () => {
+      const file = input.files?.[0];
+      input.remove();
+      if (!file) return;
+      const theme = themeFromFile(await file.text());
+      if (!theme) { new Notice('not a theme file.'); return; }
+      this.plugin.settings[key] = theme;
+      this.plugin.settings.theme = key;
+      await this.plugin.saveSettings();
+      this.display();
+      new Notice('theme imported.');
+    };
+    input.click();
   }
 }

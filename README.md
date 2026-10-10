@@ -4,7 +4,7 @@ The writing feel of [Tree](https://github.com/uncle-jasper/tree), a distraction-
 
 ## What's in it
 
-- **Themes.** Tree's palettes, plus two custom themes built from three colors you pick.
+- **Themes.** Tree's palettes, plus three custom themes built from three colors you pick. Give each a name and a line, block or underline cursor, and export or import them as files. The same file works in Tree and Ginkgo.
 - **Fonts.** iA Writer Mono, Duo and Quattro, JetBrains Mono, Inconsolata, Geist, and a couple of retro faces. They're built in, so they work on iPad too.
 - **Status line.** Word and character count, reading time and cursor position, plus Tree's little typed-out messages and word milestones. Obsidian's own status bar tucks away behind a faint ⋯ at the right end.
 - **Word goal.** Click the word count (or Ctrl+Shift+W on Mac) and type a number. Progress shows as "200 / 500 words", with a thin line filling along the bottom.

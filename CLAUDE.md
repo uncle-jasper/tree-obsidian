@@ -46,8 +46,17 @@ npm run build   # tsc, esbuild, load smoke test (scripts/smoke.cjs), styles.css
 - **Time goal:** the same box takes time: `25m`, `25 min`, `1h`, `1h30m`, `90m`, `1:30` (h:mm). `500` is still words, `0` clears.
   - A note has one goal at a time. Setting either kind replaces the other.
   - Shows "12 / 25 min" in whole minutes (nothing ticks) and fills the same bar. After the target it keeps counting.
-  - It counts only while its note is active and Obsidian is the front window and visible: a 5s tick, with gaps over 10s dropped. Switching notes or apps, locking the screen and sleep all pause it. Typing isn't required, on purpose: it's for time spent with the page, not words produced.
+    - A goal of an hour or more shows hours and minutes on both sides: "12m / 1h 30m", "1h 15m / 1h 30m", "45m / 2h" (`fmtTimeGoal()` in `status.ts`). Tree shows the same.
+  - It counts only while its note is active and its Obsidian window (the main one or a popout) is in front and visible: a 5s tick, with gaps over 10s dropped. Switching notes or apps, locking the screen and sleep all pause it. Typing isn't required, on purpose: it's for time spent with the page, not words produced.
   - Setting a goal says "word goal: 500." / "time goal: 25 minutes." / "goal cleared." Tree has the same time goal.
+- **Custom themes:** three slots (`custom`, `custom2`, `custom3`), in Tree and Ginkgo too. Only these can be named, given a cursor, exported or imported over. Built-in themes are fixed.
+  - A name (24 characters at most) replaces "custom 2" wherever themes are listed, followed by (C1), (C2) or (C3) so it still reads as a custom theme: "Dusk (C2)" (`themeName()` in `settings.ts`).
+  - Cursor: line (Tree's own), block (the CRT shape, no glow) or underline (Doogie Journal's), in the accent color. The block is the accent at 40%, not solid, so the letter under it stays readable. Dan chose tinted over solid. Body classes `tree-cursor-block` / `tree-cursor-underline`, set only while a custom theme is on.
+    - Drawn by `shapeCursorExtension()` in `editor.ts`, a CodeMirror layer that measures the character under the cursor. Terminal CRT, Amber CRT (solid block with glow) and Doogie Journal (underline) are drawn the same way. Styling `.cm-cursor` with `width: 1ch` was tried first and didn't line up in headings or formatted text: 1ch is body-text width, whatever the cursor sits on.
+  - Theme file, shared by all three apps: `Name.tree-theme.json` holding `{ treeTheme: 1, name, bg, text, accent, cursor }`. Import needs three `#rrggbb` colors, and fills the slot it was started from. Messages are Tree's: "theme exported." / "theme imported." / "not a theme file."
+  - Export on desktop is a download. Obsidian on iPad can't download, so there the file is written to the vault root.
+  - Ginkgo's shell works out surface, muted and border differently from Tree and the plugin, so a shared theme matches on the three main colors only.
+- **Font sizes:** 14 to 26px in steps of 2, plus Obsidian's own. The same list in Tree and Ginkgo.
 - **Amber CRT and Doogie Journal:** never in any menu. Konami and ABACABB both require `terminal-crt`.
 - **WordPress:**
   - Title: the opening `# Heading`, else the file name.
@@ -65,6 +74,8 @@ npm run build   # tsc, esbuild, load smoke test (scripts/smoke.cjs), styles.css
   - Known differences, left for now. Dan may want all three in line later:
     - Reading view bold is 0.6px here; Tree and Ginkgo's preview bold is 0.4px.
     - Tree and Ginkgo give H4 to H6 a 0.4px stroke (`.cm-tree-h4, .cm-tree-h5, .cm-tree-h6`). The plugin gives headings none.
+- **Focus mode is the main window only:** Obsidian copies body's classes into popout windows, so every focus rule leaves out `.is-popout-window`. Notes on other displays stay as they are, and keep their properties and mentions unless ¶ was pressed.
+  - The pane that stays is the main window's most recent one, marked `.tree-focus-tabs` by `markFocusTabs()`. Not `.mod-active`: that leaves the main window when you click into another, which blanked the note.
 - **Focus mode on desktop:** the ribbon waits off the left edge and slides out on hover. Its focus icon is a way out without Escape.
 - **Skipped on purpose:** syntax dimming, smart punctuation, heading shortcuts, dictionary, tabs, library, preview/split, find/replace, and a ✎ port of Tree's annotations. Dan uses Obsidian's `%%` comments.
 
