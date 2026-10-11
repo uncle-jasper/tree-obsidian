@@ -61,11 +61,12 @@ body[class*="tree-theme-"] .cm-focused > .cm-scroller > .cm-cursorLayer[style*="
       shapeCursorExtension() in editor.ts draws them (.tree-cursor-shape) the size of the character they sit on,
       and CodeMirror's bar steps aside. body.tree-cursor-* is set while a custom theme with one is on, and by
       Terminal CRT, Amber CRT (block) and Doogie Journal (underline), which color theirs further down.
-      The block is tinted, not solid, so the letter under it stays readable. ── */
+      The block is tinted, not solid, so the letter under it stays readable: 40%, or more where the accent is too
+      muted for that to show (blockStrength() in custom.ts). ── */
 .tree-cursor-layer { pointer-events: none; animation: tree-blink 1s infinite; }
 .tree-cursor-shape { display: none; }
 .cm-focused > .cm-scroller > .tree-cursor-layer .tree-cursor-shape { display: block; }
-body.tree-cursor-block .tree-cursor-shape { background-color: color-mix(in srgb, var(--tree-accent) 40%, transparent); }
+body.tree-cursor-block .tree-cursor-shape { background-color: color-mix(in srgb, var(--tree-accent) var(--tree-block-strength, 40%), transparent); }
 body.tree-cursor-underline .tree-cursor-shape { background-color: var(--tree-accent); }
 body.tree-cursor-block .cm-cursorLayer .cm-cursor,
 body.tree-cursor-underline .cm-cursorLayer .cm-cursor { display: none !important; }

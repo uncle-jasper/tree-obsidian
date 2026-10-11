@@ -36,9 +36,33 @@ const blendHex = (f: string, b: string, t: number) => {
   return rgbToHex(r1 * t + r2 * (1 - t), g1 * t + g2 * (1 - t), b1 * t + b2 * (1 - t));
 };
 
-export const CUSTOM_VARS = ['--tree-bg', '--tree-surface', '--tree-text', '--tree-accent', '--tree-muted', '--tree-border', '--tree-on-accent', '--tree-selection'];
+// How much one color stands out from another: WCAG's contrast ratio, 1 (the same) to 21 (black on white).
+const luminance = (rgb: number[]) => {
+  const [r, g, b] = rgb.map(v => { v /= 255; return v <= 0.03928 ? v / 12.92 : ((v + 0.055) / 1.055) ** 2.4; });
+  return 0.2126 * r + 0.7152 * g + 0.0722 * b;
+};
+const contrast = (a: number[], b: number[]) => {
+  const [hi, lo] = [luminance(a), luminance(b)].sort((x, y) => y - x);
+  return (hi + 0.05) / (lo + 0.05);
+};
 
-export function customPalette({ bg, text, accent }: CustomColors): Record<string, string> {
+// The block cursor is the accent at 40% over the background. A muted accent leaves that nearly invisible, so the tint
+// goes up, a point at a time, until the block stands out from the background as it does in a theme that reads well
+// (BLOCK_SEEN). The block is drawn over the letter, which tints the letter too, and at 100% hides it. So the tint
+// stops early if the letter would get hard to read through it (LETTER_READABLE).
+const BLOCK_BASE = 40, BLOCK_SEEN = 2.05, LETTER_READABLE = 1.85;
+export function blockStrength({ bg, text, accent }: CustomColors): number {
+  const b = hexToRgb(bg), t = hexToRgb(text), a = hexToRgb(accent);
+  const under = (c: number[], pct: number) => a.map((v, i) => v * pct / 100 + c[i] * (1 - pct / 100));   // c seen through the block
+  let pct = BLOCK_BASE;
+  while (pct < 100 && contrast(under(b, pct), b) < BLOCK_SEEN && contrast(under(t, pct + 1), under(b, pct + 1)) >= LETTER_READABLE) pct++;
+  return pct;
+}
+
+export const CUSTOM_VARS = ['--tree-bg', '--tree-surface', '--tree-text', '--tree-accent', '--tree-muted', '--tree-border', '--tree-on-accent', '--tree-selection', '--tree-block-strength'];
+
+export function customPalette(colors: CustomColors): Record<string, string> {
+  const { bg, text, accent } = colors;
   const [r, g, b] = hexToRgb(accent);
   return {
     '--tree-bg':        bg,
@@ -49,5 +73,6 @@ export function customPalette({ bg, text, accent }: CustomColors): Record<string
     '--tree-border':    blendHex(text, bg, 0.15),
     '--tree-on-accent': bg,
     '--tree-selection': `rgba(${r},${g},${b},0.25)`,
+    '--tree-block-strength': blockStrength(colors) + '%',
   };
 }
