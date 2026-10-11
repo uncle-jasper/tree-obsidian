@@ -20,6 +20,7 @@ An Obsidian plugin (id `tree-writer`) that brings the writing feel of Tree, a si
 - `src/justwrite.ts`, `src/eggs.ts`, `src/wordpress.ts`, `src/custom.ts`.
 - `css/themes.css` and `css/plugin.css`, combined with the fonts into `styles.css` by `scripts/build-css.mjs`. Edit `css/`, never `styles.css`.
 - `fonts/`: Tree's TTFs, copied from Tree. Other fonts come from npm packages.
+  - The build compresses every TTF to WOFF2 (`wawoff2`), whole, with no subsetting. `styles.css` went from 2.4 MB to 0.9 MB; the iPhone was hanging on cold starts.
 
 ## Build, install, release
 
@@ -87,3 +88,4 @@ npm run build   # tsc, esbuild, load smoke test (scripts/smoke.cjs), styles.css
 - Obsidian 1.14 sizes the editor from `--font-preferred-size`, which is worked out on `body`. Setting `--font-text-size` on the note pane alone does nothing; set both.
 - A theme rule must be at least as specific as the base rule it overrides. Moonwalker's status color lost to `.workspace-leaf-content[data-type="markdown"] > .tree-status`, and the old glow's white edge hid it.
 - CSS padding above `.cm-content` lands between properties and the first line in Obsidian.
+- `wawoff2` gives back empty fonts, with no error, when several compress at once. `build-css.mjs` runs them one at a time and throws on an empty result.

@@ -1,6 +1,6 @@
 {
   "name": "tree-writer",
-  "version": "0.15.0",
+  "version": "0.15.1",
   "description": "Tree for Obsidian",
   "scripts": {
     "build": "tsc && node esbuild.config.mjs && node scripts/smoke.cjs && node scripts/build-css.mjs"
@@ -13,7 +13,8 @@
     "esbuild": "^0.28.2",
     "geist": "^1.7.2",
     "obsidian": "^1.13.1",
-    "typescript": "^7.0.2"
+    "typescript": "^7.0.2",
+    "wawoff2": "^2.0.1"
   },
   "private": true
 }

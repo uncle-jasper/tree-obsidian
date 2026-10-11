@@ -1,11 +1,21 @@
 // Assembles styles.css: embedded fonts + Tree palettes + plugin UI.
 // Tree's own fonts live in fonts/ (copied from Tree's index.html); the rest come from npm packages.
+// TTFs are compressed to WOFF2 here: the same font, whole, in a much smaller stylesheet. iPhone was slow to start on 2.4 MB.
 import { readFileSync, writeFileSync } from 'fs';
+import wawoff2 from 'wawoff2';
 
-const ttf = name =>
-  `@font-face { font-family: 'Tree ${name}'; src: url('data:font/truetype;base64,${readFileSync(`fonts/${name}.ttf`).toString('base64')}'); font-weight: normal; font-style: normal; }`;
+const b64 = async path => {
+  const out = await wawoff2.compress(readFileSync(path));
+  if (!out.length) throw new Error(`woff2: nothing came out for ${path}`);
+  return Buffer.from(out).toString('base64');
+};
 
-const faces = ['iAWriterMonoS', 'iAWriterDuoS', 'iAWriterQuattroS', 'PrintChar21', 'PerfectDOS437'].map(ttf);
+const ttf = async name =>
+  `@font-face { font-family: 'Tree ${name}'; src: url('data:font/woff2;base64,${await b64(`fonts/${name}.ttf`)}') format('woff2'); font-weight: normal; font-style: normal; }`;
+
+// One at a time: wawoff2 returns empty fonts when several compress at once.
+const faces = [];
+for (const name of ['iAWriterMonoS', 'iAWriterDuoS', 'iAWriterQuattroS', 'PrintChar21', 'PerfectDOS437']) faces.push(await ttf(name));
 
 const woff2 = (family, path, weight) =>
   `@font-face { font-family: '${family}'; src: url('data:font/woff2;base64,${readFileSync(path).toString('base64')}') format('woff2'); font-weight: ${weight}; font-style: normal; }`;
@@ -19,12 +29,12 @@ faces.push(
   woff2('Tree Geist Sans', 'node_modules/geist/dist/fonts/geist-sans/Geist-Variable.woff2', '100 900'),
 );
 
-const truetype = (family, path, weight) =>
-  `@font-face { font-family: '${family}'; src: url('data:font/truetype;base64,${readFileSync(path).toString('base64')}') format('truetype'); font-weight: ${weight}; font-style: normal; }`;
+const truetype = async (family, path, weight) =>
+  `@font-face { font-family: '${family}'; src: url('data:font/woff2;base64,${await b64(path)}') format('woff2'); font-weight: ${weight}; font-style: normal; }`;
 
 faces.push(
-  truetype('Tree DejaVu Sans Mono', 'node_modules/dejavu-fonts-ttf/ttf/DejaVuSansMono.ttf', 400),
-  truetype('Tree DejaVu Sans Mono', 'node_modules/dejavu-fonts-ttf/ttf/DejaVuSansMono-Bold.ttf', 700),
+  await truetype('Tree DejaVu Sans Mono', 'node_modules/dejavu-fonts-ttf/ttf/DejaVuSansMono.ttf', 400),
+  await truetype('Tree DejaVu Sans Mono', 'node_modules/dejavu-fonts-ttf/ttf/DejaVuSansMono-Bold.ttf', 700),
 );
 
 const out = [
