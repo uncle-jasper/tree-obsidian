@@ -183,8 +183,18 @@ export default class TreePlugin extends Plugin {
     this.app.workspace.updateOptions();   // re-run editor extensions so zen/typewriter changes show at once
   }
 
+  // The note you're with: the active one, or while a sidebar (files, search, outline) has the focus, the main
+  // area's most recent pane if that's a note. So a click into the file explorer doesn't take the status line away.
+  private currentNote(): MarkdownView | null {
+    const ws = this.app.workspace;
+    const active = ws.getActiveViewOfType(MarkdownView);
+    if (active) return active;
+    const view = ws.getMostRecentLeaf(ws.rootSplit)?.view;
+    return view instanceof MarkdownView ? view : null;
+  }
+
   private attachStatus() {
-    this.status.attach(this.app.workspace.getActiveViewOfType(MarkdownView));
+    this.status.attach(this.currentNote());
   }
 
   private queueRefresh() {
@@ -194,7 +204,7 @@ export default class TreePlugin extends Plugin {
       this.refreshQueued = false;
       const edited = this.editQueued;
       this.editQueued = false;
-      const view = this.app.workspace.getActiveViewOfType(MarkdownView);
+      const view = this.currentNote();
       this.status.refresh(view, edited);
       if (edited) this.justWrite.checkRelease(view);
     });
@@ -262,7 +272,7 @@ export default class TreePlugin extends Plugin {
   // Word goal (Tree's setGoal): counts from now, in this note only. A time goal works the same way,
   // and a note has one or the other.
   async setGoal(input: GoalInput) {
-    const view = this.app.workspace.getActiveViewOfType(MarkdownView);
+    const view = this.currentNote();
     if (!view?.file) return;
     const path = view.file.path;
     this.settings.goal = 'words' in input
@@ -276,7 +286,7 @@ export default class TreePlugin extends Plugin {
       : 'goal cleared.');
   }
 
-  // Time goal: every 5s, add the time since the last tick, but only while the goal's note is the active one
+  // Time goal: every 5s, add the time since the last tick, but only while the goal's note is the one you're with (currentNote)
   // and its Obsidian window (the main one or a popout) is in front. Locking the screen takes focus away;
   // sleep leaves a gap, which is dropped.
   private lastTick = 0;
@@ -285,7 +295,7 @@ export default class TreePlugin extends Plugin {
     this.lastTick = now;
     const g = this.settings.timeGoal;
     if (!g || gap > 10000) return;
-    const view = this.app.workspace.getActiveViewOfType(MarkdownView);
+    const view = this.currentNote();
     if (view?.file?.path !== g.path) return;
     const doc = view.containerEl.ownerDocument;
     if (doc.visibilityState !== 'visible' || !doc.hasFocus()) return;

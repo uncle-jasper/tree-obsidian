@@ -40,6 +40,7 @@ npm run build   # tsc, esbuild, load smoke test (scripts/smoke.cjs), styles.css
 
 - **Status line:** Aa and ¶ on the left; reading time or goal in the middle; word count, character count and cursor position on the right.
   - Counts, reading time, goal, milestones, Just Write and the line number cover only what's written: properties are left out (`noteBody()` in `status.ts`). Mentions aren't part of the note's text.
+  - It stays on its note while a sidebar has the focus (`currentNote()` in `main.ts`), and goes only when the main area's most recent pane isn't a note. It used to vanish on a click into the file explorer.
 - **Quiet mode, ¶ (Ctrl+Shift+H on Mac and iPad):** says "quiet mode on." / "quiet mode off." (not when focus mode does it), and hides properties and linked/unlinked mentions in every note, and stays until pressed again. Focus mode hides them too and shows them on the way out, unless they were already hidden going in. Pressing ¶ during focus mode sticks. While on, the note keeps Tree's 6rem under the last line (also when a note has no mentions).
 - **Bottom room:** CodeMirror keeps the line you're typing 80px above the status line, as Tree's `ensureCursorPadding()` does, quiet mode or not. Bottom only, by choice (Tree also does the top). Not in typewriter mode.
   - Obsidian's own status bar is hidden, and appears only while hovering the faint ⋯ at the far right.
@@ -48,7 +49,7 @@ npm run build   # tsc, esbuild, load smoke test (scripts/smoke.cjs), styles.css
   - A note has one goal at a time. Setting either kind replaces the other.
   - Shows "12 / 25 min" in whole minutes (nothing ticks) and fills the same bar. After the target it keeps counting.
     - A goal of an hour or more shows hours and minutes on both sides: "12m / 1h 30m", "1h 15m / 1h 30m", "45m / 2h" (`fmtTimeGoal()` in `status.ts`). Tree shows the same.
-  - It counts only while its note is active and its Obsidian window (the main one or a popout) is in front and visible: a 5s tick, with gaps over 10s dropped. Switching notes or apps, locking the screen and sleep all pause it. Typing isn't required, on purpose: it's for time spent with the page, not words produced.
+  - It counts only while its note is the current one and its Obsidian window (the main one or a popout) is in front and visible: a 5s tick, with gaps over 10s dropped. Switching notes or apps, locking the screen and sleep all pause it. Clicking into a sidebar (files, search, outline) doesn't: the current note is then the main area's most recent pane (`currentNote()` in `main.ts`). Typing isn't required, on purpose: it's for time spent with the page, not words produced.
   - Setting a goal says "word goal: 500." / "time goal: 25 minutes." / "goal cleared." Tree has the same time goal.
 - **Custom themes:** three slots (`custom`, `custom2`, `custom3`), in Tree and Ginkgo too. Only these can be named, given a cursor, exported or imported over. Built-in themes are fixed.
   - A name (24 characters at most) replaces "custom 2" wherever themes are listed, followed by (C1), (C2) or (C3) so it still reads as a custom theme: "Dusk (C2)" (`themeName()` in `settings.ts`).
