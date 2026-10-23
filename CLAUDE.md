@@ -44,6 +44,10 @@ npm run build   # tsc, esbuild, load smoke test (scripts/smoke.cjs), styles.css
 - **Quiet mode, ¶ (Ctrl+Shift+H on Mac and iPad):** says "quiet mode on." / "quiet mode off." (not when focus mode does it), and hides properties and linked/unlinked mentions in every note, and stays until pressed again. Focus mode hides them too and shows them on the way out, unless they were already hidden going in. Pressing ¶ during focus mode sticks. While on, the note keeps Tree's 6rem under the last line (also when a note has no mentions).
 - **Bottom room:** CodeMirror keeps the line you're typing 80px above the status line, as Tree's `ensureCursorPadding()` does, quiet mode or not. Bottom only, by choice (Tree also does the top). Not in typewriter mode.
   - Obsidian's own status bar is hidden, and appears only while hovering the faint ⋯ at the far right.
+- **Clickable status messages:** a message that can be clicked holds while hovered, comes back if it was fading, and underlines on hover (`.is-action`). A click clears it at once, so the line is free for what follows. Only two can be clicked:
+  - The word frequency (double-click a word) opens Obsidian's find and replace with the word filled in (`findWord()` in `main.ts`). Its count is whole words; Obsidian's find also matches inside words, so it can show more. Accepted.
+  - "goal cleared." brings the goal back as it was, words or minutes so far included, and says "goal restored." (plugin-only wording).
+  - The theme export notice was considered and dropped. It's an Obsidian notice over settings, and on Mac the file is a plain download.
 - **Word goal:** set by clicking the word count or with Ctrl+Shift+W (Mac only). It belongs to one note, and shows "200 / 500 words" in the middle.
 - **Time goal:** the same box takes time: `25m`, `25 min`, `1h`, `1h30m`, `90m`, `1:30` (h:mm). `500` is still words, `0` clears.
   - A note has one goal at a time. Setting either kind replaces the other.

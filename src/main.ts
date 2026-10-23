@@ -36,6 +36,7 @@ export default class TreePlugin extends Plugin {
       onSetGoal: goal => this.setGoal(goal),
       onPeekObsidian: on => this.peekObsidian(on),
       onToggleExtras: () => this.toggleExtras(),
+      onFindWord: word => this.findWord(word),
     });
     this.settingTab = new TreeSettingTab(this.app, this);
     this.addSettingTab(this.settingTab);
@@ -90,10 +91,12 @@ export default class TreePlugin extends Plugin {
     this.addCommand({ id: 'time-goal', name: 'Set time goal for this note', callback: () => this.status.editGoal('m') });
     // A goal belongs to its note, so it follows the note when it's renamed or moved
     this.registerEvent(this.app.vault.on('rename', (file, oldPath) => {
-      const { goal, timeGoal } = this.settings;
-      if (goal?.path !== oldPath && timeGoal?.path !== oldPath) return;
+      const { goal, timeGoal, justWrite } = this.settings;
+      if (goal?.path !== oldPath && timeGoal?.path !== oldPath && justWrite?.path !== oldPath) return;
       if (goal?.path === oldPath) goal.path = file.path;
       if (timeGoal?.path === oldPath) timeGoal.path = file.path;
+      // Just Write follows its note too, or 500 words could never release you
+      if (justWrite?.path === oldPath) { justWrite.path = file.path; this.justWrite.apply(); }
       void this.saveData(this.settings);
     }));
     this.addCommand({ id: 'just-write', name: 'Just Write (30 minutes or 500 words)', hotkeys: [{ modifiers: ['Mod', 'Shift'], key: 'J' }],
@@ -185,7 +188,24 @@ export default class TreePlugin extends Plugin {
 
   // The note you're with: the active one, or while a sidebar (files, search, outline) has the focus, the main
   // area's most recent pane if that's a note. So a click into the file explorer doesn't take the status line away.
-  private currentNote(): MarkdownView | null {
+  // Obsidian's own find and replace (plain find where replace isn't offered), with the word in the box
+  private findWord(word: string) {
+    const view = this.currentNote();
+    if (!view || view.getMode() !== 'source') return;
+    view.editor.focus();
+    const commands = (this.app as unknown as { commands: { executeCommandById(id: string): boolean } }).commands;
+    if (!commands.executeCommandById('editor:open-search-replace')) commands.executeCommandById('editor:open-search');
+    window.requestAnimationFrame(() => {
+      const input = view.containerEl.querySelector<HTMLInputElement>('.document-search-input');
+      if (!input) return;
+      input.value = word;
+      input.dispatchEvent(new Event('input', { bubbles: true }));
+      input.focus();
+      input.select();
+    });
+  }
+
+    private currentNote(): MarkdownView | null {
     const ws = this.app.workspace;
     const active = ws.getActiveViewOfType(MarkdownView);
     if (active) return active;
@@ -275,15 +295,30 @@ export default class TreePlugin extends Plugin {
     const view = this.currentNote();
     if (!view?.file) return;
     const path = view.file.path;
+    const before = { goal: this.settings.goal, timeGoal: this.settings.timeGoal };
     this.settings.goal = 'words' in input
       ? { target: input.words, baseline: countWords(noteBody(view.editor.getValue()).body), path }
       : null;
     this.settings.timeGoal = 'minutes' in input ? { minutes: input.minutes, spentMs: 0, path } : null;
     this.lastTick = Date.now();
     await this.saveSettings();
-    this.status.typeMessage('words' in input ? 'word goal: ' + input.words + '.'
-      : 'minutes' in input ? 'time goal: ' + fmtMinutes(input.minutes) + '.'
-      : 'goal cleared.');
+    if ('words' in input) this.status.typeMessage('word goal: ' + input.words + '.');
+    else if ('minutes' in input) this.status.typeMessage('time goal: ' + fmtMinutes(input.minutes) + '.');
+    else {
+      // Click "goal cleared." to bring back what was there, with its words or minutes so far
+      const had = !!(before.goal || before.timeGoal);
+      this.status.typeMessage('goal cleared.', false, had ? () => void this.restoreGoal(before) : null);
+    }
+  }
+
+  private async restoreGoal(before: Pick<TreeSettings, 'goal' | 'timeGoal'>) {
+    // Not if another goal has been set since
+    if (this.settings.goal || this.settings.timeGoal) return;
+    this.settings.goal = before.goal;
+    this.settings.timeGoal = before.timeGoal;
+    this.lastTick = Date.now();
+    await this.saveSettings();
+    this.status.typeMessage('goal restored.');
   }
 
   // Time goal: every 5s, add the time since the last tick, but only while the goal's note is the one you're with (currentNote)

@@ -86,6 +86,7 @@ export interface StatusHooks {
   onSetGoal(goal: GoalInput): void;
   onPeekObsidian(on: boolean): void;     // the ⋯ that brings up Obsidian's own status bar
   onToggleExtras(): void;                // the ¶ that hides properties and mentions
+  onFindWord(word: string): void;        // a click on the word frequency opens find and replace
 }
 
 export const pick = (list: string[]) => list[Math.floor(Math.random() * list.length)];
@@ -120,6 +121,11 @@ export class StatusLine {
   private pending: string | null = null;   // an important message waiting for the current one to finish
   private goalBar: HTMLElement;
   private editingGoal = false;
+  private action: (() => void) | null = null;   // what a click on the message does, while it has one
+  private hovered = false;
+  private typing = false;
+  private holdTimer = 0;
+  private fadeTimer = 0;
 
   constructor(private getSettings: () => TreeSettings, private hooks: StatusHooks) {
     this.el = createDiv({ cls: 'tree-status' });
@@ -132,6 +138,31 @@ export class StatusLine {
     this.extras.onclick = () => hooks.onToggleExtras();
     this.centre = this.el.createDiv({ cls: 'tree-stat-centre' });
     this.msg    = this.el.createDiv({ cls: 'tree-stat-msg' });
+    // A message you can click (the word frequency, "goal cleared.") stays while you hover over it,
+    // and comes back if it was fading
+    this.msg.onmouseenter = () => {
+      if (!this.action) return;
+      this.hovered = true;
+      clearTimeout(this.holdTimer);
+      clearTimeout(this.fadeTimer);
+      this.msg.style.opacity = '1';
+    };
+    this.msg.onmouseleave = () => {
+      this.hovered = false;
+      if (this.action && !this.typing) this.hold(600);
+    };
+    this.msg.onclick = () => {
+      if (!this.action) return;
+      // Gone at once, typing or not, so the line is free for whatever the click says next
+      const action = this.action;
+      this.timers.forEach(t => { clearTimeout(t); clearInterval(t); });
+      this.timers = [];
+      clearTimeout(this.holdTimer);
+      this.typing = false;
+      this.msg.style.opacity = '0';
+      this.finish();
+      action();
+    };
     const right = this.el.createDiv({ cls: 'tree-stat-right' });
     this.words  = right.createSpan({ cls: 'tree-stat-words', attr: { 'aria-label': 'Set a word or time goal' } });
     this.words.onclick = () => this.editGoal();
@@ -275,27 +306,48 @@ export class StatusLine {
     this.centre.addClass('is-hidden');
     this.msg.setText(`"${word}" · ${count} time${count !== 1 ? 's' : ''}`);
     this.msg.style.opacity = '1';
-    this.later(() => this.fadeOut(), 2200);
+    this.setAction(() => this.hooks.onFindWord(word));
+    this.hold(2200);
+  }
+
+  private setAction(action: (() => void) | null) {
+    this.action = action;
+    this.msg.toggleClass('is-action', !!action);
+  }
+
+  // Fade after ms, unless the mouse is resting on the message
+  private hold(ms: number) {
+    clearTimeout(this.holdTimer);
+    this.holdTimer = window.setTimeout(() => { if (!this.hovered) this.fadeOut(); }, ms);
   }
 
   private fadeOut() {
     this.msg.style.opacity = '0';
-    this.later(() => {
-      this.busy = false;
-      this.el.removeClass('is-talking');
-      this.centre.removeClass('is-hidden');
-      if (this.pending) { const next = this.pending; this.pending = null; this.typeMessage(next, true); }
-    }, 500);
+    clearTimeout(this.fadeTimer);
+    this.fadeTimer = window.setTimeout(() => this.finish(), 500);
+    this.timers.push(this.fadeTimer);
+  }
+
+  private finish() {
+    this.setAction(null);
+    this.hovered = false;
+    this.busy = false;
+    this.el.removeClass('is-talking');
+    this.centre.removeClass('is-hidden');
+    if (this.pending) { const next = this.pending; this.pending = null; this.typeMessage(next, true); }
   }
 
   // Ported from Tree's typeStatusMessage(): type it out, hold, fade.
-  // important = always shown (Just Write), even with status messages off, and queued if one is already playing
-  typeMessage(text: string, important = false) {
+  // important = always shown (Just Write), even with status messages off, and queued if one is already playing.
+  // action = what clicking the message does (only for messages that aren't important, so never queued)
+  typeMessage(text: string, important = false, action: (() => void) | null = null) {
     if (!this.el.isConnected || (!important && !this.getSettings().statusMessages)) return;
     if (this.busy) { if (important) this.pending = text; return; }
     this.busy = true;
     this.el.addClass('is-talking');
     this.centre.addClass('is-hidden');
+    this.setAction(action);
+    this.typing = true;
     let i = 0;
     this.later(() => {
       this.msg.style.opacity = '1';
@@ -304,7 +356,8 @@ export class StatusLine {
         this.msg.setText(text.substring(0, ++i));
         if (i >= text.length) {
           clearInterval(t);
-          this.later(() => this.fadeOut(), 1400);
+          this.typing = false;
+          this.hold(1400);
         }
       }, 45);
       this.timers.push(t);
@@ -321,6 +374,7 @@ export class StatusLine {
 
   destroy() {
     clearTimeout(this.idleTimer);
+    clearTimeout(this.holdTimer);
     this.timers.forEach(t => { clearTimeout(t); clearInterval(t); });
     this.el.detach();
   }

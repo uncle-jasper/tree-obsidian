@@ -55,6 +55,9 @@ body.tree-font-on .markdown-rendered :is(strong, b) {
 .tree-status .tree-stat-centre { transition: opacity 0.15s; }
 .tree-status .tree-stat-centre.is-hidden { opacity: 0; }
 .tree-status .tree-stat-msg { opacity: 0; transition: opacity 0.5s; }
+/* A message that can be clicked: the word frequency finds the word, "goal cleared." brings it back */
+.tree-status .tree-stat-msg.is-action { pointer-events: auto; cursor: pointer; }
+.tree-status .tree-stat-msg.is-action:hover { text-decoration: underline; text-underline-offset: 2px; }
 
 /* ── Obsidian's own status bar: hidden, and untouchable so it can't cover Tree's line,
       until you hover over Tree's ⋯ (then it stays while the mouse is on it) ── */
