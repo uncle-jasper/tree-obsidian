@@ -59,32 +59,34 @@ export function blockStrength({ bg, text, accent }: CustomColors): number {
   return pct;
 }
 
-// The cursor is drawn in the accent. An accent close to the background leaves a line or underline cursor invisible,
-// so a custom theme's cursor is the accent nudged toward white or black (whichever pulls away from the background
-// faster) until it reaches CURSOR_SEEN, WCAG's 3:1 for things that aren't text. Accents that already stand out are
-// left as they are, so the hue holds. Tree and Ginkgo do the same.
-const CURSOR_SEEN = 3;
-export function cursorColor(bg: string, accent: string): string {
-  const b = hexToRgb(bg), a = hexToRgb(accent);
-  if (contrast(a, b) >= CURSOR_SEEN) return accent;
+// An accent close to the background can't be seen. A custom theme's cursor and links (also tags and the selection)
+// fall back on the accent nudged toward white or black (whichever pulls away from the background faster), just until
+// it stands out: CURSOR_SEEN is WCAG's 3:1 for things that aren't text, LINK_READABLE its 4.5:1 for text. Accents that
+// already stand out are left as they are, so the hue holds. Tree and Ginkgo do the same.
+const CURSOR_SEEN = 3, LINK_READABLE = 4.5;
+function readableAgainst(bg: string, color: string, target: number): string {
+  const b = hexToRgb(bg), a = hexToRgb(color);
+  if (contrast(a, b) >= target) return color;
   const toward = (end: number[], pct: number) => a.map((v, i) => v + (end[i] - v) * pct / 100);
   let best: { end: number[]; pct: number } | null = null;
   for (const end of [[255, 255, 255], [0, 0, 0]]) {
     for (let pct = 1; pct <= 100; pct++) {
-      if (contrast(toward(end, pct), b) >= CURSOR_SEEN) { if (!best || pct < best.pct) best = { end, pct }; break; }
+      if (contrast(toward(end, pct), b) >= target) { if (!best || pct < best.pct) best = { end, pct }; break; }
     }
   }
   if (!best) best = { end: luminance(b) > 0.18 ? [0, 0, 0] : [255, 255, 255], pct: 100 };
   const [r, g, bl] = toward(best.end, best.pct);
   return rgbToHex(r, g, bl);
 }
+export const cursorColor = (bg: string, accent: string) => readableAgainst(bg, accent, CURSOR_SEEN);
+export const linkColor   = (bg: string, accent: string) => readableAgainst(bg, accent, LINK_READABLE);
 
-export const CUSTOM_VARS = ['--tree-bg', '--tree-surface', '--tree-text', '--tree-accent', '--tree-muted', '--tree-border', '--tree-on-accent', '--tree-selection', '--tree-cursor', '--tree-block-strength'];
+export const CUSTOM_VARS = ['--tree-bg', '--tree-surface', '--tree-text', '--tree-accent', '--tree-muted', '--tree-border', '--tree-on-accent', '--tree-selection', '--tree-cursor', '--tree-link', '--tree-block-strength'];
 
 export function customPalette(colors: CustomColors): Record<string, string> {
   const { bg, text, accent } = colors;
-  const [r, g, b] = hexToRgb(accent);
-  const cursor = cursorColor(bg, accent);
+  const cursor = cursorColor(bg, accent), link = linkColor(bg, accent);
+  const [r, g, b] = hexToRgb(link);
   return {
     '--tree-bg':        bg,
     '--tree-surface':   adjustHex(bg, -10),
@@ -95,6 +97,7 @@ export function customPalette(colors: CustomColors): Record<string, string> {
     '--tree-on-accent': bg,
     '--tree-selection': `rgba(${r},${g},${b},0.25)`,
     '--tree-cursor':    cursor,
+    '--tree-link':      link,
     '--tree-block-strength': blockStrength({ ...colors, accent: cursor }) + '%',
   };
 }

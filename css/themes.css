@@ -30,8 +30,8 @@ body.tree-theme-custom3 {
   --text-normal: var(--tree-text);
   --text-muted: var(--tree-muted);
   --text-faint: var(--tree-muted);
-  --text-accent: var(--tree-accent);
-  --text-accent-hover: var(--tree-accent);
+  --text-accent: var(--tree-link, var(--tree-accent));
+  --text-accent-hover: var(--tree-link, var(--tree-accent));
   --text-on-accent: var(--tree-on-accent);
   --text-selection: var(--tree-selection);
   --interactive-normal: var(--tree-surface);
