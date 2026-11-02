@@ -81,6 +81,16 @@ function readableAgainst(bg: string, color: string, target: number): string {
 export const cursorColor = (bg: string, accent: string) => readableAgainst(bg, accent, CURSOR_SEEN);
 export const linkColor   = (bg: string, accent: string) => readableAgainst(bg, accent, LINK_READABLE);
 
+// A custom theme's accent that's hard to see against its background (under ACCENT_SEEN) is lightened, or darkened on
+// a light background, until it reads as text, once the color is picked (the settings tab says so, and a click puts the
+// chosen color back). Gives back the new color and the word for it, or null when the accent is fine.
+const ACCENT_SEEN = 3;
+export function bumpAccent(bg: string, accent: string): { color: string; word: string } | null {
+  if (contrast(hexToRgb(accent), hexToRgb(bg)) >= ACCENT_SEEN) return null;
+  const color = linkColor(bg, accent);
+  return { color, word: luminance(hexToRgb(color)) > luminance(hexToRgb(accent)) ? 'lightened' : 'darkened' };
+}
+
 export const CUSTOM_VARS = ['--tree-bg', '--tree-surface', '--tree-text', '--tree-accent', '--tree-muted', '--tree-border', '--tree-on-accent', '--tree-selection', '--tree-cursor', '--tree-link', '--tree-block-strength'];
 
 export function customPalette(colors: CustomColors): Record<string, string> {

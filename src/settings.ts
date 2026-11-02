@@ -1,6 +1,6 @@
-import { App, Notice, Platform, PluginSettingTab, Setting } from 'obsidian';
+import { App, ColorComponent, Notice, Platform, PluginSettingTab, Setting } from 'obsidian';
 import type TreePlugin from './main';
-import { CURSOR_STYLES, CUSTOM_KEYS, CustomColors, CustomKey, CursorStyle, isCustom, themeFileName, themeFromFile, themeToFile } from './custom';
+import { bumpAccent, CURSOR_STYLES, CUSTOM_KEYS, CustomColors, CustomKey, CursorStyle, isCustom, themeFileName, themeFromFile, themeToFile } from './custom';
 import type { JustWriteState } from './justwrite';
 import type { TimeGoal, WordGoal } from './status';
 import { WP_SECRET_ID } from './wordpress';
@@ -106,6 +106,7 @@ export const FONTS: Record<string, string> = {
 export const SIZES = [0, 14, 16, 18, 20, 22, 24, 26];
 
 export class TreeSettingTab extends PluginSettingTab {
+  private keptAccents: Partial<Record<CustomKey, string>> = {};   // custom theme -> 'bg|accent' Dan chose to keep
   constructor(app: App, private plugin: TreePlugin) {
     super(app, plugin);
   }
@@ -156,16 +157,41 @@ export class TreeSettingTab extends PluginSettingTab {
           if (option) option.textContent = themeName(s, key);
           await save();
         }));
+      const rows: Partial<Record<'bg' | 'text' | 'accent', Setting>> = {};
+      let accentPicker: ColorComponent | null = null;
       for (const [part, label] of [['bg', 'Background'], ['text', 'Text'], ['accent', 'Accent']] as const) {
-        new Setting(containerEl)
+        rows[part] = new Setting(containerEl)
           .setName(label)
           .setDesc(part === 'bg' ? 'Surfaces, borders and muted text are worked out from these three, as in Tree.' : '')
-          .addColorPicker(c => c.setValue(colors[part]).setDisabled(locked).onChange(async v => {
-            colors[part] = v;
-            if (s.theme !== key) { s.theme = key; this.display(); }   // picking a color switches to that theme
-            await save();
-          }));
+          .addColorPicker(c => {
+            if (part === 'accent') accentPicker = c;
+            c.setValue(colors[part]).setDisabled(locked).onChange(async v => {
+              colors[part] = v;
+              if (s.theme !== key) { s.theme = key; this.display(); }   // picking a color switches to that theme
+              await save();
+            });
+          });
       }
+      // An accent too close to the background is bumped once it's picked (on closing the picker, never mid-drag), and
+      // says so under Accent, where a click puts the chosen color back. That pairing is then left alone. Under Accent
+      // rather than on the status line, which the settings window covers.
+      const accentRow = rows.accent!;
+      const checkAccent = async () => {
+        accentRow.setDesc('');
+        const { bg, accent } = colors;
+        if (this.keptAccents[key] === bg + '|' + accent) return;
+        const bump = bumpAccent(bg, accent);
+        if (!bump || !accentPicker) return;
+        colors.accent = bump.color; accentPicker.setValue(bump.color); await save();
+        accentRow.descEl.createSpan({ cls: 'tree-accent-undo', text: 'accent ' + bump.word + ' to stay readable. (click to undo)' })
+          .addEventListener('click', async () => {
+            this.keptAccents[key] = bg + '|' + accent;
+            colors.accent = accent; accentPicker!.setValue(accent); await save();
+            accentRow.setDesc('accent restored.');
+          });
+      };
+      for (const part of ['bg', 'accent'] as const)
+        rows[part]!.controlEl.querySelector('input[type="color"]')?.addEventListener('change', () => { void checkAccent(); });
       new Setting(containerEl)
         .setName('Cursor')
         .setDesc('Line is Tree\'s own. Block is tinted, so the letter under it stays readable.')

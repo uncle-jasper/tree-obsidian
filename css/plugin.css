@@ -296,3 +296,7 @@ body.tree-just-write .tree-quick-toggle { display: none; }
 /* ── WordPress confirm, in Tree's lowercase voice ── */
 .tree-wp-confirm p { margin-top: 0; }
 .tree-wp-confirm .setting-item { border-top: none; padding-bottom: 0; }
+
+/* The settings tab's "accent lightened to stay readable. (click to undo)" under a custom theme's Accent */
+.tree-accent-undo { cursor: pointer; }
+.tree-accent-undo:hover { text-decoration: underline; text-underline-offset: 2px; }
