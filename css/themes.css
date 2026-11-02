@@ -46,7 +46,7 @@ body.tree-theme-custom3 {
    Accent-colored 2.5px bar, a touch taller than the line, with Tree's soft blink. */
 body[class*="tree-theme-"] .cm-cursor,
 body[class*="tree-theme-"] .cm-dropCursor {
-  border-left-color: var(--tree-accent) !important;
+  border-left-color: var(--tree-cursor, var(--tree-accent)) !important;
   border-left-width: 2.5px !important;
   transform: scaleY(1.2);
   transform-origin: center center;
@@ -66,8 +66,8 @@ body[class*="tree-theme-"] .cm-focused > .cm-scroller > .cm-cursorLayer[style*="
 .tree-cursor-layer { pointer-events: none; animation: tree-blink 1s infinite; }
 .tree-cursor-shape { display: none; }
 .cm-focused > .cm-scroller > .tree-cursor-layer .tree-cursor-shape { display: block; }
-body.tree-cursor-block .tree-cursor-shape { background-color: color-mix(in srgb, var(--tree-accent) var(--tree-block-strength, 40%), transparent); }
-body.tree-cursor-underline .tree-cursor-shape { background-color: var(--tree-accent); }
+body.tree-cursor-block .tree-cursor-shape { background-color: color-mix(in srgb, var(--tree-cursor, var(--tree-accent)) var(--tree-block-strength, 40%), transparent); }
+body.tree-cursor-underline .tree-cursor-shape { background-color: var(--tree-cursor, var(--tree-accent)); }
 body.tree-cursor-block .cm-cursorLayer .cm-cursor,
 body.tree-cursor-underline .cm-cursorLayer .cm-cursor { display: none !important; }
 

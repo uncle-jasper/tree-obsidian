@@ -59,11 +59,32 @@ export function blockStrength({ bg, text, accent }: CustomColors): number {
   return pct;
 }
 
-export const CUSTOM_VARS = ['--tree-bg', '--tree-surface', '--tree-text', '--tree-accent', '--tree-muted', '--tree-border', '--tree-on-accent', '--tree-selection', '--tree-block-strength'];
+// The cursor is drawn in the accent. An accent close to the background leaves a line or underline cursor invisible,
+// so a custom theme's cursor is the accent nudged toward white or black (whichever pulls away from the background
+// faster) until it reaches CURSOR_SEEN, WCAG's 3:1 for things that aren't text. Accents that already stand out are
+// left as they are, so the hue holds. Tree and Ginkgo do the same.
+const CURSOR_SEEN = 3;
+export function cursorColor(bg: string, accent: string): string {
+  const b = hexToRgb(bg), a = hexToRgb(accent);
+  if (contrast(a, b) >= CURSOR_SEEN) return accent;
+  const toward = (end: number[], pct: number) => a.map((v, i) => v + (end[i] - v) * pct / 100);
+  let best: { end: number[]; pct: number } | null = null;
+  for (const end of [[255, 255, 255], [0, 0, 0]]) {
+    for (let pct = 1; pct <= 100; pct++) {
+      if (contrast(toward(end, pct), b) >= CURSOR_SEEN) { if (!best || pct < best.pct) best = { end, pct }; break; }
+    }
+  }
+  if (!best) best = { end: luminance(b) > 0.18 ? [0, 0, 0] : [255, 255, 255], pct: 100 };
+  const [r, g, bl] = toward(best.end, best.pct);
+  return rgbToHex(r, g, bl);
+}
+
+export const CUSTOM_VARS = ['--tree-bg', '--tree-surface', '--tree-text', '--tree-accent', '--tree-muted', '--tree-border', '--tree-on-accent', '--tree-selection', '--tree-cursor', '--tree-block-strength'];
 
 export function customPalette(colors: CustomColors): Record<string, string> {
   const { bg, text, accent } = colors;
   const [r, g, b] = hexToRgb(accent);
+  const cursor = cursorColor(bg, accent);
   return {
     '--tree-bg':        bg,
     '--tree-surface':   adjustHex(bg, -10),
@@ -73,6 +94,7 @@ export function customPalette(colors: CustomColors): Record<string, string> {
     '--tree-border':    blendHex(text, bg, 0.15),
     '--tree-on-accent': bg,
     '--tree-selection': `rgba(${r},${g},${b},0.25)`,
-    '--tree-block-strength': blockStrength(colors) + '%',
+    '--tree-cursor':    cursor,
+    '--tree-block-strength': blockStrength({ ...colors, accent: cursor }) + '%',
   };
 }
