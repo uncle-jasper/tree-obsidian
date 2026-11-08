@@ -8,6 +8,8 @@ import { CUSTOM_KEYS, CUSTOM_VARS, CursorStyle, customPalette, isCustom } from '
 import { JustWrite } from './justwrite';
 import { Eggs } from './eggs';
 import { WordPress } from './wordpress';
+import { Proof } from './proof';
+import { CopyClean } from './copy';
 import { autoPairExtension, bottomScrollMargin, shapeCursorExtension, tabOutExtension, typewriterExtension, zenExtension } from './editor';
 
 export default class TreePlugin extends Plugin {
@@ -15,6 +17,7 @@ export default class TreePlugin extends Plugin {
   status!: StatusLine;
   quick!: QuickPanel;
   justWrite!: JustWrite;
+  proof!: Proof;
   settingTab!: TreeSettingTab;
   focusActive = false;
   private focusHidExtras = false;   // focus mode hid properties and mentions, so leaving it shows them again
@@ -31,13 +34,17 @@ export default class TreePlugin extends Plugin {
     this.justWrite = new JustWrite(this);
     new Eggs(this).register();
     new WordPress(this).register();
+    new CopyClean(this).register();
+    this.proof = new Proof(this);
     this.status = new StatusLine(() => this.settings, {
       onQuick: anchor => this.quick.toggle(anchor),
       onSetGoal: goal => this.setGoal(goal),
       onPeekObsidian: on => this.peekObsidian(on),
       onToggleExtras: () => this.toggleExtras(),
       onFindWord: word => this.findWord(word),
+      onProofNext: () => this.proof.next(),
     });
+    this.proof.register();
     this.settingTab = new TreeSettingTab(this.app, this);
     this.addSettingTab(this.settingTab);
 
@@ -117,7 +124,7 @@ export default class TreePlugin extends Plugin {
     // Escape leaves focus mode, unless something else (a modal, menu, suggester) wants it first
     this.registerDomEvent(document, 'keydown', (e: KeyboardEvent) => {
       if (!this.focusActive || e.key !== 'Escape') return;
-      if (this.quick.isOpen || (document.activeElement as HTMLElement | null)?.closest('.tree-status') || document.querySelector('.modal-container, .menu, .suggestion-container, .prompt')) return;
+      if (this.quick.isOpen || (document.activeElement as HTMLElement | null)?.closest('.tree-status') || document.querySelector('.modal-container, .menu, .suggestion-container, .prompt, .tree-proof-popover')) return;
       if ((this.app.vault as any).getConfig?.('vimMode')) return;
       e.preventDefault();
       this.setFocus(false);
@@ -142,6 +149,7 @@ export default class TreePlugin extends Plugin {
     // fresh copies, so editing custom colors never touches the defaults
     for (const key of CUSTOM_KEYS) this.settings[key] = Object.assign({}, DEFAULT_SETTINGS[key], data?.[key]);
     delete (this.settings as any).focusWidth;   // replaced by lineLength in 0.2
+    this.settings.proof = false;   // proof mode is for a final read: it never comes back on by itself
   }
 
   async saveSettings() {
@@ -179,11 +187,12 @@ export default class TreePlugin extends Plugin {
     body.toggleClass('tree-size-on', s.fontSize > 0);
     body.style.setProperty('--tree-font-size', s.fontSize + 'px');
     body.style.setProperty('--tree-line-length', s.lineLength + 'ch');
-    body.toggleClass('tree-typewriter', s.typewriter);
+    body.toggleClass('tree-typewriter', s.typewriter && !s.proof);   // typewriter waits while proofing
     body.toggleClass('tree-hide-obsidian-status', s.statusLine && s.hideObsidianStatus);
     body.toggleClass('tree-hide-extras', s.hideExtras || this.focusHidExtras);
     body.toggleClass('tree-extras-by-focus', this.focusHidExtras);   // so other windows keep theirs
     this.app.workspace.updateOptions();   // re-run editor extensions so zen/typewriter changes show at once
+    this.proof?.sync();
   }
 
   // The note you're with: the active one, or while a sidebar (files, search, outline) has the focus, the main
@@ -215,6 +224,7 @@ export default class TreePlugin extends Plugin {
 
   private attachStatus() {
     this.status.attach(this.currentNote());
+    this.proof.updateCount();
   }
 
   private queueRefresh() {
@@ -226,6 +236,7 @@ export default class TreePlugin extends Plugin {
       this.editQueued = false;
       const view = this.currentNote();
       this.status.refresh(view, edited);
+      this.proof.updateCount();
       if (edited) this.justWrite.checkRelease(view);
     });
   }

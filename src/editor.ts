@@ -96,7 +96,7 @@ export function zenExtension(getSettings: () => TreeSettings) {
       const s = getSettings();
       const builder = new RangeSetBuilder<Decoration>();
       const { state } = view;
-      if (!s.zen || !state.doc.length) return builder.finish();
+      if (!s.zen || s.proof || !state.doc.length) return builder.finish();   // zen waits while proofing
 
       if (s.zenGranularity === 'sentence') {
         const { from, to } = getZenSentenceRange(state);
@@ -126,7 +126,7 @@ export function zenExtension(getSettings: () => TreeSettings) {
 // that don't come from you (sync, other plugins) don't yank the view around.
 export function typewriterExtension(getSettings: () => TreeSettings) {
   const centerOnInput = EditorState.transactionExtender.of(tr => {
-    if (!getSettings().typewriter || !(tr.docChanged || tr.selection)) return null;
+    if (!getSettings().typewriter || getSettings().proof || !(tr.docChanged || tr.selection)) return null;
     if (tr.annotation(Transaction.userEvent) === undefined || tr.isUserEvent('select.pointer')) return null;
     return { effects: EditorView.scrollIntoView(tr.newSelection.main.head, { y: 'center' }) };
   });
@@ -134,10 +134,10 @@ export function typewriterExtension(getSettings: () => TreeSettings) {
   // When typewriter is switched on (editors get reconfigured), center once right away
   const centerOnToggle = ViewPlugin.fromClass(class {
     update(u: ViewUpdate) {
-      if (!getSettings().typewriter || !u.transactions.some(tr => tr.reconfigured)) return;
+      if (!getSettings().typewriter || getSettings().proof || !u.transactions.some(tr => tr.reconfigured)) return;
       const view = u.view;
       window.setTimeout(() => {
-        if (!getSettings().typewriter || !view.dom.isConnected) return;
+        if (!getSettings().typewriter || getSettings().proof || !view.dom.isConnected) return;
         view.dispatch({ effects: EditorView.scrollIntoView(view.state.selection.main.head, { y: 'center' }) });
       }, 0);
     }

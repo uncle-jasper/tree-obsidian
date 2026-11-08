@@ -300,3 +300,53 @@ body.tree-just-write .tree-quick-toggle { display: none; }
 /* The settings tab's "accent lightened to stay readable. (click to undo)" under a custom theme's Accent */
 .tree-accent-undo { cursor: pointer; }
 .tree-accent-undo:hover { text-decoration: underline; text-underline-offset: 2px; }
+
+/* ── Proof mode: thin marks in the theme's own colors. Spelling dotted, grammar dashed.
+      .tree-proof is the mark element; there's no body state, so nothing to clash with. ── */
+.markdown-source-view.mod-cm6 .tree-proof {
+  text-decoration-line: underline;
+  text-decoration-thickness: 1.5px;
+  text-underline-offset: 3px;
+  text-decoration-skip-ink: none;
+  cursor: pointer;
+}
+.markdown-source-view.mod-cm6 .tree-proof-spell { text-decoration-style: dotted; text-decoration-color: var(--text-accent); }
+.markdown-source-view.mod-cm6 .tree-proof-grammar { text-decoration-style: dashed; text-decoration-color: var(--text-muted); }
+
+/* The count on the status line: "3 to check", then "clean." */
+.tree-stat-proof { cursor: pointer; color: var(--text-accent); transition: color 0.2s, opacity 0.2s; }
+.tree-stat-proof:hover { text-decoration: underline; text-underline-offset: 2px; }
+.tree-stat-proof.is-clean { color: var(--text-muted); cursor: default; text-decoration: none; }
+.tree-stat-proof.is-loading { color: var(--text-faint); cursor: default; text-decoration: none; }
+
+/* A mark's fixes, in the Aa panel's style */
+.tree-proof-popover {
+  position: fixed;
+  z-index: 50;
+  max-width: min(36ch, calc(100vw - 16px));
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding: 8px 10px;
+  background: var(--background-secondary);
+  border: 1px solid var(--background-modifier-border);
+  border-radius: 6px;
+  box-shadow: 0 4px 16px rgba(0,0,0,0.12);
+  font-family: 'Tree JetBrains Mono', monospace;
+  font-size: 11px;
+  color: var(--text-muted);
+}
+.tree-proof-message { line-height: 1.5; white-space: normal; }
+.tree-proof-fixes, .tree-proof-actions { display: flex; flex-wrap: wrap; gap: 2px; }
+.tree-proof-fixes:empty { display: none; }
+.tree-proof-actions { border-top: 1px solid var(--background-modifier-border); padding-top: 4px; }
+.tree-proof-popover button {
+  all: unset;
+  cursor: pointer;
+  padding: 4px 6px;
+  border-radius: 4px;
+  font: inherit;
+}
+.tree-proof-popover .tree-proof-fix { color: var(--text-normal); }
+.tree-proof-popover .tree-proof-actions button { color: var(--text-muted); }
+.tree-proof-popover button:hover { background: var(--background-modifier-hover); color: var(--text-normal); }

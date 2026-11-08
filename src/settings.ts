@@ -4,6 +4,7 @@ import { bumpAccent, CURSOR_STYLES, CUSTOM_KEYS, CustomColors, CustomKey, Cursor
 import type { JustWriteState } from './justwrite';
 import type { TimeGoal, WordGoal } from './status';
 import { WP_SECRET_ID } from './wordpress';
+import { DIALECTS } from './proof';
 
 export interface TreeSettings {
   theme: string;        // '' = leave Obsidian's theme alone
@@ -19,6 +20,9 @@ export interface TreeSettings {
   zen: boolean;
   zenGranularity: 'sentence' | 'paragraph';
   typewriter: boolean;
+  proof: boolean;           // proof mode; always starts off
+  proofDictionary: string;  // the note holding words proof mode accepts
+  proofDialect: string;     // key of DIALECTS
   hideExtras: boolean;  // properties and linked/unlinked mentions hidden
   tabOut: boolean;
   justWrite: JustWriteState | null;
@@ -46,6 +50,9 @@ export const DEFAULT_SETTINGS: TreeSettings = {
   zen: false,
   zenGranularity: 'sentence',
   typewriter: false,
+  proof: false,
+  proofDictionary: 'Tree dictionary',
+  proofDialect: 'american',
   hideExtras: false,
   tabOut: true,
   justWrite: null,
@@ -264,6 +271,34 @@ export class TreeSettingTab extends PluginSettingTab {
       .setDesc('With the cursor just before closing **, *, ***, ~~, ==, ` or ]], Tab jumps past them, as in Tree. Everywhere else Tab works as usual.')
       .addToggle(t => t.setValue(s.tabOut)
         .onChange(async v => { s.tabOut = v; await save(); }));
+
+    new Setting(containerEl).setName('Proof mode').setHeading();
+    containerEl.createEl('p', { cls: 'setting-item-description', text:
+      'Spelling and plain grammar mistakes, checked on this device. Style is never flagged. Turn it on from the Aa panel or the "Toggle proof mode" command.' });
+
+    new Setting(containerEl)
+      .setName('Spelling')
+      .addDropdown(d => d.addOptions(DIALECTS).setValue(s.proofDialect)
+        .onChange(async v => { s.proofDialect = v; await save(); await this.plugin.proof.setDialect(); }));
+
+    new Setting(containerEl)
+      .setName('Dictionary note')
+      .setDesc('Words proof mode accepts, one per line. "Add to dictionary" writes here, and you can edit it by hand. It syncs with your vault.')
+      .addText(t => t.setPlaceholder('Tree dictionary').setValue(s.proofDictionary)
+        .onChange(async v => { s.proofDictionary = v.trim(); await save(); }));
+
+    const engine = new Setting(containerEl)
+      .setName('Proof engine')
+      .setDesc('Downloaded from Tree\'s GitHub releases the first time proof mode is turned on (about 8 MB), then works offline.');
+    void this.plugin.proof.engineDownloaded().then(has => {
+      if (!has) return;
+      engine.setDesc('Downloaded to this device. Remove it to free the space; it comes back the next time proof mode is turned on.');
+      engine.addButton(b => b.setButtonText('Remove').onClick(async () => {
+        await this.plugin.proof.toggle(false);
+        await this.plugin.proof.removeEngine();
+        this.display();
+      }));
+    });
 
     new Setting(containerEl).setName('WordPress').setHeading();
     containerEl.createEl('p', { cls: 'setting-item-description', text:

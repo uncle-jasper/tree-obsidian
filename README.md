@@ -8,11 +8,13 @@ The writing feel of [Tree](https://github.com/uncle-jasper/tree), a distraction-
 - **Fonts.** iA Writer Mono, Duo and Quattro, JetBrains Mono, Inconsolata, Geist, and a couple of retro faces. They're built in, so they work on iPad too.
 - **Status line.** Word and character count, reading time and cursor position, plus Tree's little typed-out messages and word milestones. Obsidian's own status bar tucks away behind a faint ⋯ at the right end.
 - **Word goal.** Click the word count (or Ctrl+Shift+W on Mac) and type a number. Progress shows as "200 / 500 words", with a thin line filling along the bottom.
-- **Aa panel.** Tap the Aa in the status line to change theme, font, size, zen and typewriter without opening settings.
+- **Aa panel.** Tap the Aa in the status line to change theme, font, size, zen, typewriter and proof mode without opening settings.
 - **Focus mode.** Hides all of Obsidian's interface and leaves just the page. Escape, or the faint corner mark, brings it back. On a Mac, the ribbon also slides out when you touch the left edge, so its focus icon is a way out too.
 - **Zen mode.** Fades everything except the sentence or paragraph you're writing.
 - **Typewriter mode.** Keeps the line you're typing in the middle of the screen.
 - **Just Write.** Cmd+Shift+J locks the look for 30 minutes, or until you've written 500 words.
+- **Proof mode.** For the final read: spelling and plain grammar mistakes (typos, "the the", a/an, its/it's, their/there, then/than, "we was", missing capitals, double spaces) get a thin dotted or dashed underline. Style is never flagged: fragments, long sentences, starting with "And", word choice and tone are yours. Click a mark for the fix, *ignore*, or *add to dictionary*. The status line counts what's left ("3 to check", then "clean."), and a click on the count goes to the next one. Zen and typewriter pause while it's on. Checking runs on your device with [Harper](https://writewithharper.com); nothing leaves it. The engine (about 8 MB) downloads from this repo's releases the first time you turn proof mode on. Your dictionary is an ordinary note ("Tree dictionary" unless you pick another), so it syncs with your vault.
+- **Copy clean Markdown.** Copies the note without its properties or `%%comments%%`, ready to paste into a newsletter or blog tool. From the command palette or a note's … menu.
 - **Send to WordPress.** Sends the note to your blog as a draft, from the command palette or the note's … menu. It goes as Reading view shows it, so `%%comments%%` and properties stay behind. Set your site and an application password in Tree's settings.
 - **Small things.** Tab jumps past closing `**`, `*`, `~~`, `==`, `` ` `` and `]]`. Double-click a word to see how often it appears. Writing lines are 68 characters wide, with Tree's 1.8 line spacing.
 
@@ -35,10 +37,10 @@ npm install
 npm run build
 ```
 
-This produces `main.js` and `styles.css` next to `manifest.json`.
+This produces `main.js` and `styles.css` next to `manifest.json`, plus `proof-engine-<version>.wasm.gz`, proof mode's engine. Attach that to each GitHub release along with the other three: the plugin downloads it from the release matching its version.
 
 ## Credits
 
-Fonts: iA Writer Mono, Duo and Quattro (iA), JetBrains Mono, Inconsolata, Geist (Vercel), Print Char 21 (Kreative Korp) and Perfect DOS VGA 437 (Zeh Fernando). Each is included under its own license.
+Fonts: iA Writer Mono, Duo and Quattro (iA), JetBrains Mono, Inconsolata, Geist (Vercel), Print Char 21 (Kreative Korp) and Perfect DOS VGA 437 (Zeh Fernando). Each is included under its own license. Proof mode uses [Harper](https://github.com/Automattic/harper) (Apache-2.0).
 
 If Tree helps you write, you can [buy me a coffee](https://buymeacoffee.com/dandanmian).

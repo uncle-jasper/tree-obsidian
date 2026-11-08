@@ -87,6 +87,7 @@ export interface StatusHooks {
   onPeekObsidian(on: boolean): void;     // the ⋯ that brings up Obsidian's own status bar
   onToggleExtras(): void;                // the ¶ that hides properties and mentions
   onFindWord(word: string): void;        // a click on the word frequency opens find and replace
+  onProofNext(): void;                   // a click on the proof count goes to the next mistake
 }
 
 export const pick = (list: string[]) => list[Math.floor(Math.random() * list.length)];
@@ -106,6 +107,7 @@ const plural = (n: number, word: string) => n + ' ' + word + (n !== 1 ? 's' : ''
 export class StatusLine {
   el: HTMLElement;
   private words: HTMLElement;
+  private proof: HTMLElement;
   private extras: HTMLElement;
   private chars: HTMLElement;
   private centre: HTMLElement;
@@ -164,6 +166,10 @@ export class StatusLine {
       action();
     };
     const right = this.el.createDiv({ cls: 'tree-stat-right' });
+    // Proof mode's count, only while it's on: "3 to check", then "clean."
+    this.proof  = right.createSpan({ cls: 'tree-stat-proof', attr: { 'aria-label': 'Go to the next mistake' } });
+    this.proof.onclick = () => hooks.onProofNext();
+    this.proof.hide();
     this.words  = right.createSpan({ cls: 'tree-stat-words', attr: { 'aria-label': 'Set a word or time goal' } });
     this.words.onclick = () => this.editGoal();
     this.chars  = right.createSpan();
@@ -362,6 +368,14 @@ export class StatusLine {
       }, 45);
       this.timers.push(t);
     }, 150);
+  }
+
+  // n: mistakes left in this note; 0 = none; -1 = the engine is still loading; null = proof mode is off
+  setProof(n: number | null) {
+    this.proof.toggle(n !== null);
+    this.proof.toggleClass('is-clean', n === 0);
+    this.proof.toggleClass('is-loading', n === -1);
+    if (n !== null) this.proof.setText(n === -1 ? 'proof…' : n === 0 ? 'clean.' : n + ' to check');
   }
 
   welcome() {

@@ -17,6 +17,7 @@ An Obsidian plugin (id `tree-writer`) that brings the writing feel of Tree, a si
 - `src/status.ts`: status line, typed messages, milestones, idle, goal display.
 - `src/quick.ts`: the Aa panel.
 - `src/editor.ts`: zen, typewriter, Tab-out (CodeMirror extensions).
+- `src/proof.ts`: proof mode (Harper). `src/copy.ts`: Copy clean Markdown.
 - `src/justwrite.ts`, `src/eggs.ts`, `src/wordpress.ts`, `src/custom.ts`.
 - `css/themes.css` and `css/plugin.css`, combined with the fonts into `styles.css` by `scripts/build-css.mjs`. Edit `css/`, never `styles.css`.
 - `fonts/`: Tree's TTFs, copied from Tree. Other fonts come from npm packages.
@@ -33,7 +34,8 @@ npm run build   # tsc, esbuild, load smoke test (scripts/smoke.cjs), styles.css
 - **Every release:**
   1. Bump `version` in `manifest.json` and `package.json`.
   2. Build, commit, push.
-  3. Run `gh release create <version> main.js manifest.json styles.css`. The tag equals the version, with no "v".
+  3. Run `gh release create <version> main.js manifest.json styles.css proof-engine-*.wasm.gz`. The tag equals the version, with no "v".
+     - The proof engine must be on **every** release: the plugin fetches it from the release matching its own version. The file is named after Harper's version, so devices only download it again when Harper is updated.
 - `minAppVersion` is 1.11.4, because the WordPress password uses `app.secretStorage`.
 
 ## Decisions already made
@@ -86,6 +88,15 @@ npm run build   # tsc, esbuild, load smoke test (scripts/smoke.cjs), styles.css
 - **Focus mode is the main window only:** Obsidian copies body's classes into popout windows, so every focus rule leaves out `.is-popout-window`. Notes on other displays stay as they are, and keep their properties and mentions unless ¶ was pressed.
   - The pane that stays is the main window's most recent one, marked `.tree-focus-tabs` by `markFocusTabs()`. Not `.mod-active`: that leaves the main window when you click into another, which blanked the note.
 - **Focus mode on desktop:** the ribbon waits off the left edge and slides out on hover. Its focus icon is a way out without Escape.
+- **Proof mode** (0.16.0): spelling and plain grammar only, never style. Dan's requirement: it must not flag his stylistic choices.
+  - Engine: Harper via `harper.js`, `LocalLinter` on the main thread. The first check takes ~2.5s, later ones ~75ms on a 2,000-word essay, so the engine warms up on load. Rechecks 700ms after typing stops.
+  - The wasm is ~20 MB, so it's not bundled (iPhone cold starts). `esbuild.config.mjs` writes `proof-engine-<harper version>.wasm.gz` (~8 MB) and bakes the version and the wasm's SHA-256 into main.js. The plugin downloads it once from the matching GitHub release into its own folder and checks the hash.
+  - Style is off twice: rules switched off by name (`STYLE_RULES`, picked by running Harper over Dan's published posts and drafts; each fired on something he wrote on purpose) or by a style-sounding description, and lints of style kinds dropped (`DROP_KINDS`).
+  - Skipped text is blanked to spaces so positions hold: properties, `%%`/HTML comments, code, wikilinks and embeds, link URLs, bare URLs, tags, `[CAPS: placeholders]`. Harper's spans are UTF-16 offsets (checked with emoji).
+  - Always starts off (`loadSettings`). Zen and typewriter pause while it's on, and come back after. Just Write turns it off.
+  - Wording: "proof mode on." / "proof mode off." / "fetching the proof engine. once only." / "added to dictionary." / "not during just write." Status count: "3 to check", "clean.", "proof…" while loading.
+  - Dictionary: a note, one word per line (default "Tree dictionary"). Each word also covers its possessive. Ignore is per spot, per session.
+- **Copy clean Markdown** (0.16.0): the note without properties or comments, for pasting into newsletter tools. Generic on purpose: the plugin is public, so nothing names Dan's own tools.
 - **Skipped on purpose:** syntax dimming, smart punctuation, heading shortcuts, dictionary, tabs, library, preview/split, find/replace, and a ✎ port of Tree's annotations. Dan uses Obsidian's `%%` comments.
 
 ## Gotchas learned

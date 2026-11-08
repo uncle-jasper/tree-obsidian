@@ -51,6 +51,12 @@ const CHOICES: Choice[] = [
     get: s => (s.typewriter ? 'on' : 'off'),
     set: (s, k) => { s.typewriter = k === 'on'; },
   },
+  {
+    label: 'proof',
+    options: [{ key: 'off', label: 'off' }, { key: 'on', label: 'on' }],
+    get: s => (s.proof ? 'on' : 'off'),
+    set: (s, k) => { s.proof = k === 'on'; },
+  },
 ];
 
 // Small Tree-style popover above the status line. ‹ › flick through options;

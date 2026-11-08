@@ -26,6 +26,7 @@ export class JustWrite {
     const view = this.plugin.app.workspace.getActiveViewOfType(MarkdownView);
     if (!view?.file) return;
     this.plugin.quick.close();
+    this.plugin.settings.proof = false;   // Just Write is for drafting, not checking
     this.plugin.settings.justWrite = {
       until: Date.now() + JW_MINUTES * 60 * 1000,
       wordStart: countWords(noteBody(view.editor.getValue()).body),
