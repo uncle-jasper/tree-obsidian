@@ -1,6 +1,6 @@
-import { App, ColorComponent, Notice, Platform, PluginSettingTab, Setting } from 'obsidian';
+import { App, Notice, Platform, PluginSettingTab, Setting } from 'obsidian';
 import type TreePlugin from './main';
-import { bumpAccent, CURSOR_STYLES, CUSTOM_KEYS, CustomColors, CustomKey, CursorStyle, isCustom, themeFileName, themeFromFile, themeToFile } from './custom';
+import { CURSOR_STYLES, linkColor, needsReadable, CUSTOM_KEYS, CustomColors, CustomKey, CursorStyle, isCustom, themeFileName, themeFromFile, themeToFile } from './custom';
 import type { JustWriteState } from './justwrite';
 import type { TimeGoal, WordGoal } from './status';
 import { WP_SECRET_ID } from './wordpress';
@@ -113,7 +113,6 @@ export const FONTS: Record<string, string> = {
 export const SIZES = [0, 14, 16, 18, 20, 22, 24, 26];
 
 export class TreeSettingTab extends PluginSettingTab {
-  private keptAccents: Partial<Record<CustomKey, string>> = {};   // custom theme -> 'bg|accent' Dan chose to keep
   constructor(app: App, private plugin: TreePlugin) {
     super(app, plugin);
   }
@@ -165,40 +164,47 @@ export class TreeSettingTab extends PluginSettingTab {
           await save();
         }));
       const rows: Partial<Record<'bg' | 'text' | 'accent', Setting>> = {};
-      let accentPicker: ColorComponent | null = null;
+      let showReadable = () => {};
       for (const [part, label] of [['bg', 'Background'], ['text', 'Text'], ['accent', 'Accent']] as const) {
         rows[part] = new Setting(containerEl)
           .setName(label)
           .setDesc(part === 'bg' ? 'Surfaces, borders and muted text are worked out from these three, as in Tree.' : '')
           .addColorPicker(c => {
-            if (part === 'accent') accentPicker = c;
             c.setValue(colors[part]).setDisabled(locked).onChange(async v => {
               colors[part] = v;
+              this.plugin.pickingColor = true;   // don't ask about readability mid-drag
+              showReadable();
               if (s.theme !== key) { s.theme = key; this.display(); }   // picking a color switches to that theme
               await save();
             });
           });
       }
-      // An accent too close to the background is bumped once it's picked (on closing the picker, never mid-drag), and
-      // says so under Accent, where a click puts the chosen color back. That pairing is then left alone. Under Accent
-      // rather than on the status line, which the settings window covers.
-      const accentRow = rows.accent!;
-      const checkAccent = async () => {
-        accentRow.setDesc('');
-        const { bg, accent } = colors;
-        if (this.keptAccents[key] === bg + '|' + accent) return;
-        const bump = bumpAccent(bg, accent);
-        if (!bump || !accentPicker) return;
-        colors.accent = bump.color; accentPicker.setValue(bump.color); await save();
-        accentRow.descEl.createSpan({ cls: 'tree-accent-undo', text: 'accent ' + bump.word + ' to stay readable. (click to undo)' })
-          .addEventListener('click', async () => {
-            this.keptAccents[key] = bg + '|' + accent;
-            colors.accent = accent; accentPicker!.setValue(accent); await save();
-            accentRow.setDesc('accent restored.');
-          });
+      // Readable colors: an accent too faint to read can be shown adjusted, or exactly as picked. The colors picked are
+      // always what's saved, so this can be switched either way. When it would change something, the row shows what:
+      // the accent, then the color links and the cursor take instead.
+      const readableRow = new Setting(containerEl)
+        .setName('Readable colors')
+        .addToggle(t => t.setValue(colors.readable !== false).setDisabled(locked)
+          .onChange(async v => { colors.readable = v; await save(); }));
+      showReadable = () => {
+        readableRow.descEl.empty();
+        if (!needsReadable(colors)) { readableRow.setDesc('Your colors already read well.'); return; }
+        const swatch = (color: string) => {
+          readableRow.descEl.createSpan({ cls: 'tree-readable-swatch' }).style.backgroundColor = color;
+          readableRow.descEl.appendText(color);
+        };
+        readableRow.descEl.appendText('The accent is hard to read here. On: ');
+        swatch(colors.accent);
+        readableRow.descEl.appendText(' → ');
+        swatch(linkColor(colors.bg, colors.accent));
+        readableRow.descEl.appendText(' for links and the cursor. Off: your color, exactly.');
       };
+      showReadable();
+      // Once the picker closes, a theme that's now too faint asks whether to adjust it
       for (const part of ['bg', 'accent'] as const)
-        rows[part]!.controlEl.querySelector('input[type="color"]')?.addEventListener('change', () => { void checkAccent(); });
+        rows[part]!.controlEl.querySelector('input[type="color"]')?.addEventListener('change', () => {
+          window.setTimeout(() => { this.plugin.pickingColor = false; this.plugin.askReadable(); });
+        });
       new Setting(containerEl)
         .setName('Cursor')
         .setDesc('Line is Tree\'s own. Block is tinted, so the letter under it stays readable.')

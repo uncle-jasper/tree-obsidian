@@ -1,16 +1,31 @@
-import { MarkdownView, Platform, Plugin, setIcon } from 'obsidian';
+import { App, MarkdownView, Modal, Platform, Plugin, Setting, setIcon } from 'obsidian';
 import { EditorView, drawSelection } from '@codemirror/view';
 import { Transaction } from '@codemirror/state';
 import { DEFAULT_SETTINGS, SECRET_THEMES, THEMES, TreeSettings, TreeSettingTab } from './settings';
 import { GoalInput, StatusLine, countWords, fmtMinutes, noteBody, pick, timeMessages } from './status';
 import { QuickPanel } from './quick';
-import { CUSTOM_KEYS, CUSTOM_VARS, CursorStyle, customPalette, isCustom } from './custom';
+import { CUSTOM_KEYS, CUSTOM_VARS, CursorStyle, CustomKey, customPalette, isCustom, needsReadable } from './custom';
 import { JustWrite } from './justwrite';
 import { Eggs } from './eggs';
 import { WordPress } from './wordpress';
 import { Proof } from './proof';
 import { CopyClean } from './copy';
 import { autoPairExtension, bottomScrollMargin, shapeCursorExtension, tabOutExtension, typewriterExtension, zenExtension } from './editor';
+
+// Asked once for a custom theme whose accent is too faint to read. The answer is the theme's Readable colors switch.
+class ReadableModal extends Modal {
+  private answered = false;
+  constructor(app: App, private onAnswer: (readable: boolean) => void, private onDone: (answered: boolean) => void) { super(app); }
+  onOpen() {
+    this.contentEl.addClass('tree-wp-confirm');
+    this.contentEl.createEl('p', { text: 'adjust theme colors for readability?' });
+    const answer = (readable: boolean) => { this.answered = true; this.close(); this.onAnswer(readable); };
+    new Setting(this.contentEl)
+      .addButton(b => b.setButtonText('ignore').onClick(() => answer(false)))
+      .addButton(b => b.setButtonText('yes').setCta().onClick(() => answer(true)));
+  }
+  onClose() { this.contentEl.empty(); this.onDone(this.answered); }
+}
 
 export default class TreePlugin extends Plugin {
   settings!: TreeSettings;
@@ -24,6 +39,9 @@ export default class TreePlugin extends Plugin {
   private exitEl: HTMLElement | null = null;
   private focusTabsEl: HTMLElement | null = null;   // the pane focus mode keeps on screen
   private refreshQueued = false;
+  pickingColor = false;   // a color picker is open in settings: wait until it closes before asking about readability
+  private readableAsking = false;
+  private readableSkipped = new Set<CustomKey>();   // closed without an answer: asked again next time Obsidian starts
   private editQueued = false;
 
   async onload() {
@@ -83,6 +101,7 @@ export default class TreePlugin extends Plugin {
       this.lastTick = Date.now();
       this.registerInterval(window.setInterval(() => this.tickTimeGoal(), 5000));
       window.setTimeout(() => this.status.welcome(), 800);
+      this.askReadable();
     });
 
     // Focus mode
@@ -193,6 +212,24 @@ export default class TreePlugin extends Plugin {
     body.toggleClass('tree-extras-by-focus', this.focusHidExtras);   // so other windows keep theirs
     this.app.workspace.updateOptions();   // re-run editor extensions so zen/typewriter changes show at once
     this.proof?.sync();
+    this.askReadable();
+  }
+
+  // A custom theme too faint to read asks, once, whether to adjust it: on starting up, choosing or importing it, or
+  // closing the color picker. The answer is saved with the theme and can be changed with its Readable colors switch.
+  askReadable() {
+    const s = this.settings, key = s.theme;
+    if (!isCustom(key) || this.readableAsking || this.pickingColor || !this.app.workspace.layoutReady) return;
+    if (s[key].readable !== undefined || !needsReadable(s[key]) || this.readableSkipped.has(key)) return;
+    this.readableAsking = true;
+    new ReadableModal(this.app, async readable => {
+      s[key].readable = readable;
+      await this.saveSettings();
+      if (this.settingTab.containerEl.isConnected) this.settingTab.display();
+    }, answered => {
+      this.readableAsking = false;
+      if (!answered) this.readableSkipped.add(key);
+    }).open();
   }
 
   // The note you're with: the active one, or while a sidebar (files, search, outline) has the focus, the main

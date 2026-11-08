@@ -2,7 +2,8 @@
 // A custom theme can also have a name and its own cursor: Tree's line, the CRT block or Doogie Journal's underline.
 export type CursorStyle = 'line' | 'block' | 'underline';
 export const CURSOR_STYLES: CursorStyle[] = ['line', 'block', 'underline'];
-export interface CustomColors { bg: string; text: string; accent: string; name?: string; cursor?: CursorStyle; }
+// readable: whether colors too faint to see are shown adjusted (true) or exactly as picked (false). Unset until asked.
+export interface CustomColors { bg: string; text: string; accent: string; name?: string; cursor?: CursorStyle; readable?: boolean; }
 
 export const CUSTOM_KEYS = ['custom', 'custom2', 'custom3'] as const;
 export type CustomKey = typeof CUSTOM_KEYS[number];
@@ -13,7 +14,8 @@ export const themeFileName = (c: CustomColors, fallback: string) =>
   ((c.name || fallback).replace(/[\\/:*?"<>|]/g, '').trim() || fallback) + '.tree-theme.json';
 
 export const themeToFile = (c: CustomColors) =>
-  JSON.stringify({ treeTheme: 1, name: c.name ?? '', bg: c.bg, text: c.text, accent: c.accent, cursor: c.cursor ?? 'line' }, null, 2) + '\n';
+  JSON.stringify({ treeTheme: 1, name: c.name ?? '', bg: c.bg, text: c.text, accent: c.accent, cursor: c.cursor ?? 'line',
+    ...(typeof c.readable === 'boolean' ? { readable: c.readable } : {}) }, null, 2) + '\n';
 
 export function themeFromFile(raw: string): CustomColors | null {
   let t: any = null;
@@ -24,6 +26,7 @@ export function themeFromFile(raw: string): CustomColors | null {
     bg: t.bg.toLowerCase(), text: t.text.toLowerCase(), accent: t.accent.toLowerCase(),
     name: typeof t.name === 'string' ? t.name.trim().slice(0, 24) : '',
     cursor: CURSOR_STYLES.includes(t.cursor) ? t.cursor : 'line',
+    ...(typeof t.readable === 'boolean' ? { readable: t.readable } : {}),
   };
 }
 
@@ -81,21 +84,24 @@ function readableAgainst(bg: string, color: string, target: number): string {
 export const cursorColor = (bg: string, accent: string) => readableAgainst(bg, accent, CURSOR_SEEN);
 export const linkColor   = (bg: string, accent: string) => readableAgainst(bg, accent, LINK_READABLE);
 
-// A custom theme's accent that's hard to see against its background (under ACCENT_SEEN) is lightened, or darkened on
-// a light background, until it reads as text, once the color is picked (the settings tab says so, and a click puts the
-// chosen color back). Gives back the new color and the word for it, or null when the accent is fine.
+// Readable colors: a theme whose accent is too faint to read as a link (under LINK_READABLE) asks once whether to adjust
+// it. The colors picked are always what's saved; adjusting is only in what's shown, so it can be switched off again.
+// On: links and the cursor use the nudged colors above, and an accent under ACCENT_SEEN is shown as the link color.
+// Off: the accent, links and cursor are exactly the accent. Tree and Ginkgo do the same.
 const ACCENT_SEEN = 3;
-export function bumpAccent(bg: string, accent: string): { color: string; word: string } | null {
-  if (contrast(hexToRgb(accent), hexToRgb(bg)) >= ACCENT_SEEN) return null;
-  const color = linkColor(bg, accent);
-  return { color, word: luminance(hexToRgb(color)) > luminance(hexToRgb(accent)) ? 'lightened' : 'darkened' };
+export const needsReadable = ({ bg, accent }: CustomColors) => contrast(hexToRgb(accent), hexToRgb(bg)) < LINK_READABLE;
+export function shownColors(c: CustomColors): { accent: string; cursor: string; link: string } {
+  if (c.readable === false) return { accent: c.accent, cursor: c.accent, link: c.accent };
+  const link = linkColor(c.bg, c.accent);
+  const accent = c.readable && contrast(hexToRgb(c.accent), hexToRgb(c.bg)) < ACCENT_SEEN ? link : c.accent;
+  return { accent, cursor: cursorColor(c.bg, c.accent), link };
 }
 
 export const CUSTOM_VARS = ['--tree-bg', '--tree-surface', '--tree-text', '--tree-accent', '--tree-muted', '--tree-border', '--tree-on-accent', '--tree-selection', '--tree-cursor', '--tree-link', '--tree-block-strength'];
 
 export function customPalette(colors: CustomColors): Record<string, string> {
-  const { bg, text, accent } = colors;
-  const cursor = cursorColor(bg, accent), link = linkColor(bg, accent);
+  const { bg, text } = colors;
+  const { accent, cursor, link } = shownColors(colors);
   const [r, g, b] = hexToRgb(link);
   return {
     '--tree-bg':        bg,

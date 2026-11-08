@@ -297,9 +297,11 @@ body.tree-just-write .tree-quick-toggle { display: none; }
 .tree-wp-confirm p { margin-top: 0; }
 .tree-wp-confirm .setting-item { border-top: none; padding-bottom: 0; }
 
-/* The settings tab's "accent lightened to stay readable. (click to undo)" under a custom theme's Accent */
-.tree-accent-undo { cursor: pointer; }
-.tree-accent-undo:hover { text-decoration: underline; text-underline-offset: 2px; }
+/* A custom theme's Readable colors row: the accent and what links and the cursor show instead, as small swatches */
+.tree-readable-swatch {
+  display: inline-block; width: 0.8em; height: 0.8em; margin: 0 0.3em 0 0.1em; vertical-align: -0.05em;
+  border-radius: 50%; box-shadow: inset 0 0 0 1px var(--background-modifier-border);
+}
 
 /* ── Proof mode: thin marks in the theme's own colors. Spelling dotted, grammar dashed.
       .tree-proof is the mark element; there's no body state, so nothing to clash with. ── */
