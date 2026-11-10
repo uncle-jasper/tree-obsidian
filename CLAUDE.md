@@ -71,6 +71,7 @@ npm run build   # tsc, esbuild, load smoke test (scripts/smoke.cjs), styles.css
   - Theme file, shared by all three apps: `Name.tree-theme.json` holding `{ treeTheme: 1, name, bg, text, accent, cursor, readable }`. `readable` is left out until answered; a file without it asks on import if it's faint. Import needs three `#rrggbb` colors, and fills the slot it was started from. Messages are Tree's: "theme exported." / "theme imported." / "not a theme file."
   - Export on desktop is a download. Obsidian on iPad can't download, so there the file is written to the vault root.
   - Ginkgo's shell works out surface, muted and border differently from Tree and the plugin, so a shared theme matches on the three main colors only.
+- **Line cursor** (0.17.1): iA Writer's shape, a 3px bar with rounded ends (`border-radius: 1.5px`), still 1.2× the line height, in the theme's cursor/accent color, with Tree's blink. Was 2.5px square. Plugin only for now: Tree and Ginkgo are still 2.5px.
 - **Font sizes:** 14 to 26px in steps of 2, plus Obsidian's own. The same list in Tree and Ginkgo.
 - **Amber CRT and Doogie Journal:** never in any menu. Konami and ABACABB both require `terminal-crt`.
 - **WordPress:**

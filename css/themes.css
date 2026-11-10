@@ -43,11 +43,13 @@ body.tree-theme-custom3 {
 }
 
 /* ── Tree's cursor (all Tree themes; the themes below override it with their own) ──
-   Accent-colored 2.5px bar, a touch taller than the line, with Tree's soft blink. */
+   Accent-colored 3px bar with rounded ends (iA Writer's shape), a touch taller than the line, with Tree's soft blink. */
 body[class*="tree-theme-"] .cm-cursor,
 body[class*="tree-theme-"] .cm-dropCursor {
   border-left-color: var(--tree-cursor, var(--tree-accent)) !important;
-  border-left-width: 2.5px !important;
+  border-left-width: 3px !important;
+  border-radius: 1.5px;
+  margin-left: -1px;
   transform: scaleY(1.2);
   transform-origin: center center;
 }
