@@ -1,8 +1,10 @@
-# Publishes a GitHub release when a version tag (e.g. 0.17.2, no "v") is pushed.
+# Publishes a GitHub release for the version in manifest.json.
+# Run it from the Actions tab (Release → Run workflow), or push a version tag (e.g. 0.17.2, no "v").
 # Builds on GitHub and attaches main.js, manifest.json, styles.css and the proof engine.
 name: Release
 
 on:
+  workflow_dispatch:
   push:
     tags: ["[0-9]+.[0-9]+.[0-9]+"]
 
@@ -20,17 +22,19 @@ jobs:
           cache: npm
       - run: npm ci
       - run: npm run build
-      - name: Check the tag matches manifest.json
+      - name: Version
+        id: v
         run: |
           v=$(node -p "require('./manifest.json').version")
-          [ "$v" = "$GITHUB_REF_NAME" ] || { echo "tag $GITHUB_REF_NAME but manifest says $v"; exit 1; }
+          if [ "$GITHUB_REF_TYPE" = tag ] && [ "$GITHUB_REF_NAME" != "$v" ]; then
+            echo "tag $GITHUB_REF_NAME but manifest says $v"; exit 1
+          fi
+          echo "version=$v" >> "$GITHUB_OUTPUT"
       - name: Publish
         env:
           GH_TOKEN: ${{ github.token }}
+          V: ${{ steps.v.outputs.version }}
         run: |
-          # Notes: the tag's message (git tag -a), else the commit's.
-          git fetch -q --force origin "refs/tags/$GITHUB_REF_NAME:refs/tags/$GITHUB_REF_NAME"
-          git tag -l --format='%(contents)' "$GITHUB_REF_NAME" > notes.txt
-          [ -s notes.txt ] || git log -1 --format=%B > notes.txt
-          gh release create "$GITHUB_REF_NAME" main.js manifest.json styles.css proof-engine-*.wasm.gz \
-            --title "$GITHUB_REF_NAME" --notes-file notes.txt
+          git log -1 --format=%B | grep -v -e '^Co-Authored-By:' -e '^Claude-Session:' > notes.txt
+          gh release create "$V" main.js manifest.json styles.css proof-engine-*.wasm.gz \
+            --target "$GITHUB_SHA" --title "$V" --notes-file notes.txt

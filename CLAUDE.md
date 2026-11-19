@@ -34,7 +34,7 @@ npm run build   # tsc, esbuild, load smoke test (scripts/smoke.cjs), styles.css
 - **Every release:**
   1. Bump `version` in `manifest.json` and `package.json`.
   2. Build, commit, push.
-  3. Push a tag equal to the version, with no "v": `git tag -a 0.17.2 -m "<release notes>" && git push origin 0.17.2` (the tag message becomes the release notes). `.github/workflows/release.yml` builds on GitHub and publishes the release with `main.js`, `manifest.json`, `styles.css` and `proof-engine-*.wasm.gz` (Claude sessions can't create releases directly). It fails if the tag doesn't match `manifest.json`.
+  3. Dan runs it: GitHub → Actions → Release → Run workflow (on `main`). `.github/workflows/release.yml` builds on GitHub and publishes release `<version from manifest.json>` with `main.js`, `manifest.json`, `styles.css` and `proof-engine-*.wasm.gz`; notes are the last commit's message, so make that commit describe the release. Claude sessions can't create releases or push tags, so this is Dan's one click. (Pushing a version tag also works, from a machine that can.)
      - The proof engine must be on **every** release: the plugin fetches it from the release matching its own version. The file is named after Harper's version, so devices only download it again when Harper is updated.
 - `minAppVersion` is 1.11.4, because the WordPress password uses `app.secretStorage`.
 
