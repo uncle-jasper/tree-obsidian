@@ -28,6 +28,9 @@ jobs:
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
-          git log -1 --format=%B > notes.txt
+          # Notes: the tag's message (git tag -a), else the commit's.
+          git fetch -q --force origin "refs/tags/$GITHUB_REF_NAME:refs/tags/$GITHUB_REF_NAME"
+          git tag -l --format='%(contents)' "$GITHUB_REF_NAME" > notes.txt
+          [ -s notes.txt ] || git log -1 --format=%B > notes.txt
           gh release create "$GITHUB_REF_NAME" main.js manifest.json styles.css proof-engine-*.wasm.gz \
             --title "$GITHUB_REF_NAME" --notes-file notes.txt
