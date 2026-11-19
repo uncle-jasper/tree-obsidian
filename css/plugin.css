@@ -7,6 +7,14 @@ body.tree-size-on .workspace-leaf-content[data-type="markdown"] {
   /* Obsidian 1.14 sizes the editor from --font-preferred-size, which is resolved on body,
      so a leaf-level --font-text-size alone no longer reaches it. Keep iOS Dynamic Type. */
   --font-preferred-size: calc(var(--tree-font-size) * var(--preferred-text-scale, 1));
+  /* Tables (Markdown and Dataview) at 90% of the text. Obsidian resolves --table-text-size on body,
+     from its own size, so tables never followed Tree's and came out bigger than the text around them. */
+  --tree-table-size: calc(var(--tree-font-size) * var(--preferred-text-scale, 1) * 0.9);
+  --table-text-size: var(--tree-table-size);
+  --table-header-size: var(--tree-table-size);
+}
+body.tree-size-on .workspace-leaf-content[data-type="markdown"] :is(table, th, td) {
+  font-size: var(--tree-table-size);
 }
 
 /* Bold as Tree draws it: weight 700 plus a hairline stroke. Most bundled fonts have no bold face,

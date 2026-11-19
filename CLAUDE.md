@@ -73,6 +73,7 @@ npm run build   # tsc, esbuild, load smoke test (scripts/smoke.cjs), styles.css
   - Ginkgo's shell works out surface, muted and border differently from Tree and the plugin, so a shared theme matches on the three main colors only.
 - **Line cursor** (0.17.1): iA Writer's shape, a 3px bar with rounded ends (`border-radius: 1.5px`), still 1.2× the line height, in the theme's cursor/accent color, with Tree's blink. Was 2.5px square. Plugin only for now: Tree and Ginkgo are still 2.5px.
 - **Font sizes:** 14 to 26px in steps of 2, plus Obsidian's own. The same list in Tree and Ginkgo.
+- **Tables** (0.17.2): Markdown and Dataview tables are 90% of Tree's font size, while a Tree size is on (`--tree-table-size` in `plugin.css`). Obsidian resolves `--table-text-size` on body from its own size, so tables used to come out bigger than the note's text. Dan chose 90% over matching the text: monospace cells wrap less.
 - **Amber CRT and Doogie Journal:** never in any menu. Konami and ABACABB both require `terminal-crt`.
 - **WordPress:**
   - Title: the opening `# Heading`, else the file name.
