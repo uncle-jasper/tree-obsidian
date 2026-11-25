@@ -11,6 +11,8 @@ body.tree-theme-sage,
 body.tree-theme-ash,
 body.tree-theme-gameboy,
 body.tree-theme-moonwalker,
+body.tree-theme-rain,
+body.tree-theme-downpour,
 body.tree-theme-terminal,
 body.tree-theme-terminal-crt,
 body.tree-theme-amber-crt,
@@ -166,6 +168,19 @@ body.tree-theme-moonwalker .cm-cursor {
 }
 body.tree-theme-moonwalker .cm-dropCursor { border-left-color: #6cb5f8 !important; }
 
+/* ── Rain: cloudy slate and sea-grey. Downpour is rain with its switch on: a darker sky,
+   with the falling rain drawn by rain.ts. The same values are in Tree and Ginkgo. ── */
+body.tree-theme-rain {
+  --tree-bg: #192125; --tree-surface: #1f282c; --tree-text: #c3cfd1;
+  --tree-accent: #7fa6b0; --tree-muted: #5b6f74; --tree-border: #283438;
+  --tree-on-accent: #192125; --tree-selection: rgba(127,166,176,0.24);
+}
+body.tree-theme-downpour {
+  --tree-bg: #0e1517; --tree-surface: #131b1e; --tree-text: #b0c3c5;
+  --tree-accent: #66a0a8; --tree-muted: #42585c; --tree-border: #1a2729;
+  --tree-on-accent: #0e1517; --tree-selection: rgba(102,160,168,0.25);
+}
+
 body.tree-theme-terminal {
   --tree-bg: #0a0a0a; --tree-surface: #0f0f0f; --tree-text: #22cc22;
   --tree-accent: #0a5c0a; --tree-muted: #1a7a1a; --tree-border: #1a3a1a;
@@ -178,7 +193,7 @@ body.tree-theme-terminal .markdown-rendered { text-shadow: 0 0 8px color-mix(in 
 body.tree-theme-terminal .tree-status { text-shadow: 0 0 6px color-mix(in srgb, currentColor 50%, transparent); }
 body.tree-theme-terminal .cm-cursor { border-left-color: #33ff33 !important; caret-color: #33ff33; }
 
-/* ── Terminal CRT (same green palette as Terminal, with the CRT effect switched on) ── */
+/* ── Terminal CRT: terminal with its crt switch on (lookOf() in settings.ts). Same green palette, with the CRT effect. ── */
 body.tree-theme-terminal-crt {
   --tree-bg: #0a0a0a; --tree-surface: #0f0f0f; --tree-text: #22cc22;
   --tree-accent: #0a5c0a; --tree-muted: #1a7a1a; --tree-border: #1a3a1a;

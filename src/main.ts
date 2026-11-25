@@ -1,7 +1,8 @@
 import { App, MarkdownView, Modal, Platform, Plugin, Setting, setIcon } from 'obsidian';
 import { EditorView, drawSelection } from '@codemirror/view';
 import { Transaction } from '@codemirror/state';
-import { DEFAULT_SETTINGS, SECRET_THEMES, THEMES, TreeSettings, TreeSettingTab } from './settings';
+import { DEFAULT_SETTINGS, SECRET_THEMES, THEMES, TreeSettings, TreeSettingTab, VARIANT_LOOKS, lookOf } from './settings';
+import { Rain } from './rain';
 import { GoalInput, StatusLine, countWords, fmtMinutes, noteBody, pick, timeMessages } from './status';
 import { QuickPanel } from './quick';
 import { CUSTOM_KEYS, CUSTOM_VARS, CursorStyle, CustomKey, customPalette, isCustom, needsReadable } from './custom';
@@ -33,6 +34,7 @@ export default class TreePlugin extends Plugin {
   quick!: QuickPanel;
   justWrite!: JustWrite;
   proof!: Proof;
+  rain?: Rain;
   settingTab!: TreeSettingTab;
   focusActive = false;
   private focusHidExtras = false;   // focus mode hid properties and mentions, so leaving it shows them again
@@ -54,6 +56,9 @@ export default class TreePlugin extends Plugin {
     new WordPress(this).register();
     new CopyClean(this).register();
     this.proof = new Proof(this);
+    this.rain = new Rain(this);
+    this.rain.register();
+    this.app.workspace.onLayoutReady(() => this.rain?.update());
     this.status = new StatusLine(() => this.settings, {
       onQuick: anchor => this.quick.toggle(anchor),
       onSetGoal: goal => this.setGoal(goal),
@@ -68,7 +73,7 @@ export default class TreePlugin extends Plugin {
 
     // Status line follows the active note
     this.registerEvent(this.app.workspace.on('active-leaf-change', () => { this.attachStatus(); this.markFocusTabs(); }));
-    this.registerEvent(this.app.workspace.on('layout-change', () => { this.attachStatus(); this.justWrite.apply(); this.markFocusTabs(); }));
+    this.registerEvent(this.app.workspace.on('layout-change', () => { this.attachStatus(); this.justWrite.apply(); this.markFocusTabs(); this.rain?.update(); }));
     // Make sure the editor draws its own cursor (so Tree's cursor styles apply), blinking at Tree's 1s rate
     this.registerEditorExtension(drawSelection({ cursorBlinkRate: 1000 }));
     this.registerEditorExtension([zenExtension(() => this.settings), typewriterExtension(() => this.settings), tabOutExtension(() => this.settings), autoPairExtension(), bottomScrollMargin(), shapeCursorExtension(() => this.cursorStyle())]);
@@ -168,6 +173,13 @@ export default class TreePlugin extends Plugin {
     // fresh copies, so editing custom colors never touches the defaults
     for (const key of CUSTOM_KEYS) this.settings[key] = Object.assign({}, DEFAULT_SETTINGS[key], data?.[key]);
     delete (this.settings as any).focusWidth;   // replaced by lineLength in 0.2
+    // 0.18: terminal crt became terminal with its crt switch on, as in Tree and Ginkgo
+    if (data && data.crt === undefined) {
+      const s = this.settings;
+      s.crt = s.theme === 'terminal-crt' || s.secretReturn === 'terminal-crt' || s.theme === 'amber-crt' || s.theme === 'doogie-journal';
+      if (s.theme === 'terminal-crt') s.theme = 'terminal';
+      s.secretReturn = 'terminal';
+    }
     this.settings.proof = false;   // proof mode is for a final read: it never comes back on by itself
   }
 
@@ -178,14 +190,15 @@ export default class TreePlugin extends Plugin {
   }
 
   private themeClasses() {
-    return [...Object.keys(THEMES), ...Object.keys(SECRET_THEMES)].filter(Boolean).map(t => 'tree-theme-' + t);
+    return [...Object.keys(THEMES), ...Object.keys(SECRET_THEMES), ...VARIANT_LOOKS].filter(Boolean).map(t => 'tree-theme-' + t);
   }
 
   // A custom theme picks its cursor. The CRT themes have their block and Doogie Journal its underline; the rest use the line.
   private cursorStyle(): CursorStyle {
     const s = this.settings;
-    if (s.theme === 'terminal-crt' || s.theme === 'amber-crt') return 'block';
-    if (s.theme === 'doogie-journal') return 'underline';
+    const look = lookOf(s);
+    if (look === 'terminal-crt' || look === 'amber-crt') return 'block';
+    if (look === 'doogie-journal') return 'underline';
     return (isCustom(s.theme) && s[s.theme].cursor) || 'line';
   }
 
@@ -193,7 +206,7 @@ export default class TreePlugin extends Plugin {
     const s = this.settings;
     const body = document.body;
     body.removeClass(...this.themeClasses());
-    if (s.theme) body.addClass('tree-theme-' + s.theme);
+    if (s.theme) body.addClass('tree-theme-' + lookOf(s));
     CUSTOM_VARS.forEach(v => body.style.removeProperty(v));
     if (isCustom(s.theme)) {
       for (const [v, val] of Object.entries(customPalette(s[s.theme]))) body.style.setProperty(v, val);
@@ -212,6 +225,7 @@ export default class TreePlugin extends Plugin {
     body.toggleClass('tree-extras-by-focus', this.focusHidExtras);   // so other windows keep theirs
     this.app.workspace.updateOptions();   // re-run editor extensions so zen/typewriter changes show at once
     this.proof?.sync();
+    this.rain?.update();
     this.askReadable();
   }
 

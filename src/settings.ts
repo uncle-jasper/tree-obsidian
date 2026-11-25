@@ -30,7 +30,10 @@ export interface TreeSettings {
   timeGoal: TimeGoal | null;   // one goal at a time: setting either clears the other
   wpUrl: string;
   wpUser: string;   // the application password lives in Obsidian's secure storage, not here
-  secretReturn: string;   // the terminal theme to go "back to green" to
+  secretReturn: string;   // the theme to go "back to green" to (terminal, with crt on)
+  crt: boolean;           // terminal: the CRT look
+  downpour: boolean;      // rain: the darker downpour colors
+  fallingRain: boolean;   // downpour: rain streaks behind the note
   custom: CustomColors;
   custom2: CustomColors;
   custom3: CustomColors;
@@ -61,6 +64,9 @@ export const DEFAULT_SETTINGS: TreeSettings = {
   wpUrl: '',
   wpUser: '',
   secretReturn: 'terminal',
+  crt: false,
+  downpour: false,
+  fallingRain: true,
   custom:  { bg: '#f5f0e8', text: '#2c2416', accent: '#8b6e4e' },   // Tree's defaults
   custom2: { bg: '#f5f0e8', text: '#2c2416', accent: '#8b6e4e' },
   custom3: { bg: '#f5f0e8', text: '#2c2416', accent: '#8b6e4e' },
@@ -77,8 +83,8 @@ export const THEMES: Record<string, string> = {
   ash:               'ash',
   gameboy:           'game boy',
   moonwalker:        'moonwalker',
+  rain:              'rain',
   terminal:          'terminal',
-  'terminal-crt':    'terminal crt',
   custom:            'custom',
   custom2:           'custom 2',
   custom3:           'custom 3',
@@ -89,6 +95,12 @@ export const SECRET_THEMES: Record<string, string> = {
   'amber-crt':       'amber crt',
   'doogie-journal':  'doogie journal',
 };
+
+// What's on screen: a theme plus its switch. Terminal with crt on looks like terminal crt,
+// rain with downpour on looks like downpour. These looks have their own CSS but no menu entry.
+export const VARIANT_LOOKS = ['terminal-crt', 'downpour'];
+export const lookOf = (s: TreeSettings) =>
+  (s.theme === 'terminal' && s.crt ? 'terminal-crt' : s.theme === 'rain' && s.downpour ? 'downpour' : s.theme);
 
 export const themeLabel = (key: string) => (key === '' ? 'none' : THEMES[key] ?? SECRET_THEMES[key] ?? key);
 // A named custom theme goes by its name wherever themes are listed
@@ -135,7 +147,21 @@ export class TreeSettingTab extends PluginSettingTab {
         // A secret theme shows as current while you're in it, but is never offered as a choice
         .addOptions(SECRET_THEMES[s.theme] ? { [s.theme]: SECRET_THEMES[s.theme] } : {})
         .setValue(s.theme).setDisabled(locked)
-        .onChange(async v => { s.theme = v; await save(); }));
+        .onChange(async v => { s.theme = v; await save(); this.display(); }));
+
+    // A theme's own switches, shown only while it's on (as in Tree's quick settings)
+    if (s.theme === 'terminal') {
+      new Setting(containerEl).setName('CRT').setDesc('Scanlines, a vignette, a little flicker and a glowing block cursor.')
+        .addToggle(t => t.setValue(s.crt).setDisabled(locked).onChange(async v => { s.crt = v; await save(); }));
+    }
+    if (s.theme === 'rain') {
+      new Setting(containerEl).setName('Downpour').setDesc('A darker sky, with rain falling behind the note.')
+        .addToggle(t => t.setValue(s.downpour).setDisabled(locked).onChange(async v => { s.downpour = v; await save(); this.display(); }));
+      if (s.downpour) {
+        new Setting(containerEl).setName('Falling rain').setDesc('Turn off to keep the downpour colors without the rain.')
+          .addToggle(t => t.setValue(s.fallingRain).setDisabled(locked).onChange(async v => { s.fallingRain = v; await save(); }));
+      }
+    }
 
     new Setting(containerEl)
       .setName('Font')
