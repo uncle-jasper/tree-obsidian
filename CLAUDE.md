@@ -91,6 +91,7 @@ npm run build   # tsc, esbuild, load smoke test (scripts/smoke.cjs), styles.css
   - The glow is `0 0 0.361em currentColor, 0 0 0.434em #0000ff, 0 0 0.434em #0000ff`. Sizes are in em, so it scales with the font.
   - The inner layer is `currentColor`, so dim text gets a dim glow. A fixed bright inner layer blurs any text darker than itself.
   - Keep it at 4 shadows or fewer. Dan has hit typing lag from stacked shadows.
+  - The Aa panel (0.18.1) gets a faint halo only, `0 0 0.3em` at 40% of the text color, and its labels and arrows are the text color at 60%. It sits inside the status line and used to inherit the full glow, which smeared its 11px text; the muted `#1a3fae` labels were nearly invisible on black. Plugin only: Tree and Ginkgo's quick settings don't glow.
   - iOS only: headings glow at 50%, bold text at 50%. WebKit blooms bold text about twice as bright as Chromium, so full-strength headings smeared on iPhone while matching body text on Mac. Check glow changes in both engines.
   - Tree and Ginkgo do the same in WebKit only (`@supports (font: -apple-system-body)`): editor headings at 60%, preview headings at 45%, bold at 50%.
 - **Glow themes (Moonwalker, Terminal, Terminal CRT, Amber CRT):** every text glow follows the text color (`currentColor`, or `color-mix(in srgb, currentColor N%, transparent)` for a fainter one), so dim text never sits under a brighter glow and blurs. Applies in all three apps. Terminal links are `#7dff7d`, Amber CRT links `#ffd27a`. Doogie Journal has no glow.

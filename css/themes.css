@@ -307,3 +307,18 @@ body.tree-theme-gameboy .markdown-reading-view {
   background-image: radial-gradient(circle at 1px 1px, rgba(51,66,42,0.14) 1px, transparent 0);
   background-size: 3px 3px;
 }
+
+/* Moonwalker's Aa panel sits inside the status line and used to inherit its full glow, which
+   smeared the 11px text, and its labels took the dark muted blue, nearly lost on black.
+   Here the glow is a faint halo that follows the text color, and labels and arrows are the
+   text color, dimmed. Values in the same blue as the note's text. */
+body.tree-theme-moonwalker .tree-quick {
+  text-shadow: 0 0 0.3em color-mix(in srgb, currentColor 40%, transparent);
+}
+body.tree-theme-moonwalker .tree-quick .tree-quick-label,
+body.tree-theme-moonwalker .tree-quick .tree-quick-arrow,
+body.tree-theme-moonwalker .tree-quick .tree-quick-item {
+  color: var(--text-normal);
+  opacity: 0.6;
+}
+body.tree-theme-moonwalker .tree-quick .tree-quick-item.is-current { opacity: 1; }
