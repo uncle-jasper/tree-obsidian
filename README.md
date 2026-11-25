@@ -4,7 +4,7 @@ The writing feel of [Tree](https://github.com/uncle-jasper/tree), a distraction-
 
 ## What's in it
 
-- **Themes.** Tree's palettes, plus three custom themes built from three colors you pick. Give each a name and a line, block or underline cursor, and export or import them as files. The same file works in Tree and Ginkgo.
+- **Themes.** Tree's palettes, including rain, whose downpour switch adds rain falling behind the note. Plus three custom themes built from three colors you pick. Give each a name and a line, block or underline cursor, and export or import them as files. The same file works in Tree and Ginkgo.
 - **Fonts.** iA Writer Mono, Duo and Quattro, JetBrains Mono, Inconsolata, Geist, and a couple of retro faces. They're built in, so they work on iPad too.
 - **Status line.** Word and character count, reading time and cursor position, plus Tree's little typed-out messages and word milestones. Obsidian's own status bar tucks away behind a faint ⋯ at the right end.
 - **Word goal.** Click the word count (or Ctrl+Shift+W on Mac) and type a number. Progress shows as "200 / 500 words", with a thin line filling along the bottom.
@@ -18,7 +18,7 @@ The writing feel of [Tree](https://github.com/uncle-jasper/tree), a distraction-
 - **Send to WordPress.** Sends the note to your blog as a draft, from the command palette or the note's … menu. It goes as Reading view shows it, so `%%comments%%` and properties stay behind. Set your site and an application password in Tree's settings.
 - **Small things.** Tab jumps past closing `**`, `*`, `~~`, `==`, `` ` `` and `]]`. Double-click a word to see how often it appears. Writing lines are 68 characters wide, with Tree's 1.8 line spacing.
 
-Try the Konami code in terminal crt for something extra.
+Try the Konami code in terminal, with crt on, for something extra.
 
 ## Install
 

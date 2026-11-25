@@ -74,7 +74,14 @@ npm run build   # tsc, esbuild, load smoke test (scripts/smoke.cjs), styles.css
 - **Line cursor** (0.17.1): iA Writer's shape, a 3px bar with rounded ends (`border-radius: 1.5px`), still 1.2× the line height, in the theme's cursor/accent color, with Tree's blink. Was 2.5px square. Plugin only for now: Tree and Ginkgo are still 2.5px.
 - **Font sizes:** 14 to 26px in steps of 2, plus Obsidian's own. The same list in Tree and Ginkgo.
 - **Tables** (0.17.2): Markdown and Dataview tables are 90% of Tree's font size, while a Tree size is on (`--tree-table-size` in `plugin.css`). Obsidian resolves `--table-text-size` on body from its own size, so tables used to come out bigger than the note's text. Dan chose 90% over matching the text: monospace cells wrap less.
-- **Amber CRT and Doogie Journal:** never in any menu. Konami and ABACABB both require `terminal-crt`.
+- **Amber CRT and Doogie Journal:** never in any menu. Konami and ABACABB both require the CRT look (terminal with crt on). "back to green." returns to terminal with crt on.
+- **Theme switches** (0.18.0): as in Tree and Ginkgo, a theme's variants are switches under it, not separate themes. Terminal has **crt**; rain has **downpour**, and downpour has **falling rain**. They show in the Aa panel right under the theme row (`when` in `quick.ts`) and under Theme in settings, only while that theme is on.
+  - `lookOf()` in `settings.ts` turns theme + switch into what's drawn: `terminal-crt` or `downpour`. Those keep their own CSS classes (`tree-theme-terminal-crt`, `tree-theme-downpour`) but aren't in any list (`VARIANT_LOOKS`).
+  - 0.18.0 moved a saved `terminal-crt` to terminal with crt on (`loadSettings`).
+- **Rain / Downpour:** rain is cloudy slate and sea-grey; downpour is darker and teal, with rain streaks falling behind each open note only (`rain.ts`: a canvas first in each markdown leaf's `.view-content`; the editor's backgrounds go transparent while it's there, `.tree-rain-on`). Not behind the sidebars or the title bar. Dan chose note-only.
+  - Same colors and streaks as Tree and Ginkgo. Paused while Obsidian is hidden; a still layer under reduced motion.
+  - Turning falling rain off lets the drops already falling finish; turning it on starts new drops from the top.
+  - `umbre11a`, typed on its own line in downpour, erases itself and flips falling rain: "the rain has let up." / "grab your umbrella." Spelled with 1s so the real word never triggers it (Dan's call).
 - **WordPress:**
   - Title: the opening `# Heading`, else the file name.
   - Repeat the title as an `<h3>` at the top of the body. The blog's theme doesn't show post titles.

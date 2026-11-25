@@ -11,7 +11,10 @@ interface Choice {
   set(s: TreeSettings, key: string): void;
   labelFor?: (s: TreeSettings, key: string) => string;   // a label that isn't fixed: a secret theme, or a custom theme's own name
   from?: (s: TreeSettings) => string; // where ‹ › step from when the current value isn't in options
+  when?: (s: TreeSettings) => boolean; // a row shown only some of the time: a theme's own switch
 }
+
+const onOff: Option[] = [{ key: 'off', label: 'off' }, { key: 'on', label: 'on' }];
 
 const fromRecord = (rec: Record<string, string>): Option[] => Object.entries(rec).map(([key, label]) => ({ key, label }));
 
@@ -23,6 +26,28 @@ const CHOICES: Choice[] = [
     set: (s, k) => { s.theme = k; },
     labelFor: themeName,
     from: s => s.secretReturn,
+  },
+  // Each theme's own switches sit right under it, and only while it's on (as in Tree)
+  {
+    label: 'crt',
+    options: onOff,
+    when: s => s.theme === 'terminal',
+    get: s => (s.crt ? 'on' : 'off'),
+    set: (s, k) => { s.crt = k === 'on'; },
+  },
+  {
+    label: 'downpour',
+    options: onOff,
+    when: s => s.theme === 'rain',
+    get: s => (s.downpour ? 'on' : 'off'),
+    set: (s, k) => { s.downpour = k === 'on'; },
+  },
+  {
+    label: 'falling rain',
+    options: onOff,
+    when: s => s.theme === 'rain' && s.downpour,
+    get: s => (s.fallingRain ? 'on' : 'off'),
+    set: (s, k) => { s.fallingRain = k === 'on'; },
   },
   {
     label: 'font',
@@ -114,6 +139,7 @@ export class QuickPanel {
     this.el.empty();
 
     for (const choice of CHOICES) {
+      if (choice.when && !choice.when(s)) continue;
       const current = choice.get(s);
       const found = choice.options.findIndex(o => o.key === current);
       const i = found >= 0 ? found : Math.max(0, choice.options.findIndex(o => o.key === choice.from?.(s)));
