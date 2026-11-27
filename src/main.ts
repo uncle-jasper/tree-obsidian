@@ -1,13 +1,15 @@
 import { App, MarkdownView, Modal, Platform, Plugin, Setting, setIcon } from 'obsidian';
 import { EditorView, drawSelection } from '@codemirror/view';
 import { Transaction } from '@codemirror/state';
-import { DEFAULT_SETTINGS, SECRET_THEMES, THEMES, TreeSettings, TreeSettingTab, VARIANT_LOOKS, lookOf } from './settings';
-import { Rain } from './rain';
+import { DEFAULT_SETTINGS, LOOKS, TreeSettings, TreeSettingTab, choicesOf, customKey, lookOf } from './settings';
+import TreePacks, { Pack, PackTheme, Stage } from './packs';
+import { PackStore } from './packstore';
+import { PackLayers } from './packlayers';
+import RAIN_SEED from './rain-seed.json';
 import { GoalInput, StatusLine, countWords, fmtMinutes, noteBody, pick, timeMessages } from './status';
 import { QuickPanel } from './quick';
 import { CUSTOM_KEYS, CUSTOM_VARS, CursorStyle, CustomKey, customPalette, isCustom, needsReadable } from './custom';
 import { JustWrite } from './justwrite';
-import { Eggs } from './eggs';
 import { WordPress } from './wordpress';
 import { Proof } from './proof';
 import { CopyClean } from './copy';
@@ -34,7 +36,9 @@ export default class TreePlugin extends Plugin {
   quick!: QuickPanel;
   justWrite!: JustWrite;
   proof!: Proof;
-  rain?: Rain;
+  packs!: PackStore;
+  private layers?: PackLayers;
+  private colorStage?: Stage;   // a pack theme's colors, glow and sheen, for the whole window
   settingTab!: TreeSettingTab;
   focusActive = false;
   private focusHidExtras = false;   // focus mode hid properties and mentions, so leaving it shows them again
@@ -47,18 +51,31 @@ export default class TreePlugin extends Plugin {
   private editQueued = false;
 
   async onload() {
+    this.packs = new PackStore(this);
     await this.loadSettings();
+    await this.packs.load();
+    await this.movePacksOver();
+    this.colorStage = TreePacks.createStage({
+      parts: ['colors', 'css'], varPrefix: '--tree-', themeAttr: false,
+      selectors: {
+        text: '.markdown-source-view.mod-cm6 .cm-content, .markdown-rendered',
+        links: '.markdown-source-view.mod-cm6 .cm-link, .markdown-source-view.mod-cm6 .cm-url, .markdown-source-view.mod-cm6 .cm-hmd-internal-link, .markdown-rendered a',
+        cursor: '.cm-cursor',
+        headings: '.markdown-source-view.mod-cm6 .HyperMD-header, .markdown-rendered :is(h1, h2, h3, h4, h5, h6)',
+      },
+    });
+    this.register(() => this.colorStage?.destroy());
+    this.layers = new PackLayers(this);
+    this.layers.register();
+    this.packs.watch();
     this.applyAppearance();
 
     this.quick  = new QuickPanel(this);
     this.justWrite = new JustWrite(this);
-    new Eggs(this).register();
     new WordPress(this).register();
     new CopyClean(this).register();
     this.proof = new Proof(this);
-    this.rain = new Rain(this);
-    this.rain.register();
-    this.app.workspace.onLayoutReady(() => this.rain?.update());
+    this.app.workspace.onLayoutReady(() => this.layers?.sync());
     this.status = new StatusLine(() => this.settings, {
       onQuick: anchor => this.quick.toggle(anchor),
       onSetGoal: goal => this.setGoal(goal),
@@ -73,7 +90,7 @@ export default class TreePlugin extends Plugin {
 
     // Status line follows the active note
     this.registerEvent(this.app.workspace.on('active-leaf-change', () => { this.attachStatus(); this.markFocusTabs(); }));
-    this.registerEvent(this.app.workspace.on('layout-change', () => { this.attachStatus(); this.justWrite.apply(); this.markFocusTabs(); this.rain?.update(); }));
+    this.registerEvent(this.app.workspace.on('layout-change', () => { this.attachStatus(); this.justWrite.apply(); this.markFocusTabs(); this.layers?.sync(); }));
     // Make sure the editor draws its own cursor (so Tree's cursor styles apply), blinking at Tree's 1s rate
     this.registerEditorExtension(drawSelection({ cursorBlinkRate: 1000 }));
     this.registerEditorExtension([zenExtension(() => this.settings), typewriterExtension(() => this.settings), tabOutExtension(() => this.settings), autoPairExtension(), bottomScrollMargin(), shapeCursorExtension(() => this.cursorStyle())]);
@@ -172,14 +189,9 @@ export default class TreePlugin extends Plugin {
     this.settings = Object.assign({}, DEFAULT_SETTINGS, data);
     // fresh copies, so editing custom colors never touches the defaults
     for (const key of CUSTOM_KEYS) this.settings[key] = Object.assign({}, DEFAULT_SETTINGS[key], data?.[key]);
+    for (const key of ['packLast', 'packSwitches', 'packSeen'] as const) this.settings[key] = Object.assign({}, data?.[key]);
     delete (this.settings as any).focusWidth;   // replaced by lineLength in 0.2
-    // 0.18: terminal crt became terminal with its crt switch on, as in Tree and Ginkgo
-    if (data && data.crt === undefined) {
-      const s = this.settings;
-      s.crt = s.theme === 'terminal-crt' || s.secretReturn === 'terminal-crt' || s.theme === 'amber-crt' || s.theme === 'doogie-journal';
-      if (s.theme === 'terminal-crt') s.theme = 'terminal';
-      s.secretReturn = 'terminal';
-    }
+    this.oldData = data;
     this.settings.proof = false;   // proof mode is for a final read: it never comes back on by itself
   }
 
@@ -189,28 +201,99 @@ export default class TreePlugin extends Plugin {
     this.attachStatus();
   }
 
-  private themeClasses() {
-    return [...Object.keys(THEMES), ...Object.keys(SECRET_THEMES), ...VARIANT_LOOKS].filter(Boolean).map(t => 'tree-theme-' + t);
+  private oldData: any = null;
+
+  // 2.0: themes came in packs. Settings saved by 0.18 or earlier move over, as in Tree and Ginkgo
+  // (PACKS-PLAN.md, "Moving today's settings over"). Anyone who used rain gets the Rain pack.
+  private async movePacksOver() {
+    const s = this.settings, d = this.oldData;
+    if (s.packsMigrated) return;
+    const old: string = d && typeof d.theme === 'string' ? d.theme : 'parchment';
+    // Before 0.18, terminal's crt was its own theme, and amber and doogie only ever came from it
+    const crt: boolean = d && typeof d.crt === 'boolean' ? d.crt : old === 'terminal-crt' || d?.secretReturn === 'terminal-crt';
+    const classic = ['', ...TreePacks.BUILTIN[0].themes.map(t => t.id)];
+    if (classic.includes(old)) { s.pack = 'classic'; s.theme = old; }
+    else if (['gameboy', 'moonwalker', 'amber-crt', 'doogie-journal'].includes(old)) { s.pack = 'retro'; s.theme = old; }
+    else if (old === 'terminal' || old === 'terminal-crt') { s.pack = 'retro'; s.theme = 'terminal'; s.packSwitches['retro/terminal'] = { crt }; }
+    else if (old === 'rain' || old === 'downpour') {
+      const downpour = old === 'downpour' || !!d?.downpour;
+      if (!this.packs.installed.rain) await this.packs.install(RAIN_SEED);
+      s.pack = 'rain';
+      s.theme = downpour ? 'downpour' : 'rain';
+      s.packSwitches['rain/' + s.theme] = { 'falling rain': downpour ? d?.fallingRain !== false : false };
+    } else { s.pack = 'classic'; s.theme = 'parchment'; }
+    this.selectTheme(s.pack, s.theme);   // remembers it as the pack's last theme, and a shelf theme's colors
+    for (const k of ['crt', 'downpour', 'fallingRain', 'secretReturn']) delete (s as any)[k];
+    s.packsMigrated = true;
+    await this.saveData(s);
   }
 
-  // A custom theme picks its cursor. The CRT themes have their block and Doogie Journal its underline; the rest use the line.
+  // The pack and theme in use. A shelf pack that isn't here (not synced yet, or removed) shows its remembered
+  // colors until it's back; failing that, parchment. The setting itself is kept, so it comes back by itself.
+  currentTheme(): { pack: Pack | null; theme: PackTheme | null } {
+    const s = this.settings;
+    const pack = this.packs.find(s.pack);
+    const theme = pack && (s.theme === '' && pack.id === 'classic' ? null : TreePacks.findTheme(pack, s.theme));
+    if (pack && (theme || s.theme === '')) return { pack, theme };
+    const mem = s.packRemembered?.pack === s.pack && s.packRemembered.theme === s.theme ? TreePacks.fromMemory(s.packRemembered) : null;
+    return { pack: null, theme: mem ?? TreePacks.findTheme(TreePacks.BUILTIN[0], 'parchment') };
+  }
+
+  // Choosing: the pack row opens a pack on the theme last used in it, the everyday one the first time
+  selectPack(id: string) {
+    const pack = this.packs.find(id);
+    if (pack) this.selectTheme(id, TreePacks.openingTheme(pack, this.settings.packLast).id);
+  }
+  selectTheme(packId: string, themeId: string) {
+    const s = this.settings, pack = this.packs.find(packId);
+    if (!pack) return;
+    const theme = TreePacks.findTheme(pack, themeId);
+    s.pack = packId;
+    s.theme = theme ? theme.id : packId === 'classic' && themeId === '' ? '' : TreePacks.openingTheme(pack, s.packLast).id;
+    s.packLast[packId] = s.theme;
+    s.packRemembered = theme && !theme.native ? TreePacks.remember(pack, theme) : null;
+  }
+  setSwitch(label: string, on: boolean) {
+    const s = this.settings, key = s.pack + '/' + s.theme;
+    s.packSwitches[key] = Object.assign({}, s.packSwitches[key], { [label]: on });
+  }
+
+  private themeClasses() { return LOOKS.map(t => 'tree-theme-' + t); }
+
+  // A custom theme picks its cursor. The CRT themes have their block and Doogie Journal (crt on) its underline;
+  // the rest use the line.
   private cursorStyle(): CursorStyle {
     const s = this.settings;
-    const look = lookOf(s);
+    const look = this.currentTheme().pack ? lookOf(s) : 'pack';
     if (look === 'terminal-crt' || look === 'amber-crt') return 'block';
     if (look === 'doogie-journal') return 'underline';
-    return (isCustom(s.theme) && s[s.theme].cursor) || 'line';
+    const key = customKey(s);
+    return (key && s[key].cursor) || 'line';
   }
 
   applyAppearance() {
     const s = this.settings;
     const body = document.body;
     body.removeClass(...this.themeClasses());
-    if (s.theme) body.addClass('tree-theme-' + lookOf(s));
+    const { pack, theme } = this.currentTheme();
+    const look = pack ? lookOf(s) : 'pack';   // no pack: its remembered colors (or parchment)
+    if (look) body.addClass('tree-theme-' + (look === 'pack' && theme?.native ? theme.id : look));
     CUSTOM_VARS.forEach(v => body.style.removeProperty(v));
-    if (isCustom(s.theme)) {
-      for (const [v, val] of Object.entries(customPalette(s[s.theme]))) body.style.setProperty(v, val);
+    const key = customKey(s);
+    if (key && pack) {
+      for (const [v, val] of Object.entries(customPalette(s[key]))) body.style.setProperty(v, val);
     }
+    // A theme from a pack: packs.js paints its colors (as --tree-*), glow and sheen for the window,
+    // and PackLayers its rain, light and scanlines behind or over each note
+    const fromPack = !!theme && !theme.native;
+    if (fromPack) {
+      this.colorStage?.apply(theme!, choicesOf(s));
+      body.style.setProperty('--tree-on-accent', theme!.colors.bg);
+    } else {
+      this.colorStage?.clear();
+      body.style.removeProperty('--tree-on-accent');
+    }
+    this.layers?.show(fromPack && pack ? theme : null, choicesOf(s));
     body.toggleClass('tree-cursor-block', this.cursorStyle() === 'block');
     body.toggleClass('tree-cursor-underline', this.cursorStyle() === 'underline');
 
@@ -225,15 +308,14 @@ export default class TreePlugin extends Plugin {
     body.toggleClass('tree-extras-by-focus', this.focusHidExtras);   // so other windows keep theirs
     this.app.workspace.updateOptions();   // re-run editor extensions so zen/typewriter changes show at once
     this.proof?.sync();
-    this.rain?.update();
     this.askReadable();
   }
 
   // A custom theme too faint to read asks, once, whether to adjust it: on starting up, choosing or importing it, or
   // closing the color picker. The answer is saved with the theme and can be changed with its Readable colors switch.
   askReadable() {
-    const s = this.settings, key = s.theme;
-    if (!isCustom(key) || this.readableAsking || this.pickingColor || !this.app.workspace.layoutReady) return;
+    const s = this.settings, key = customKey(s);
+    if (!key || this.readableAsking || this.pickingColor || !this.app.workspace.layoutReady) return;
     if (s[key].readable !== undefined || !needsReadable(s[key]) || this.readableSkipped.has(key)) return;
     this.readableAsking = true;
     new ReadableModal(this.app, async readable => {

@@ -1,4 +1,5 @@
-import { FONTS, SIZES, THEMES, TreeSettings, themeName } from './settings';
+import { FONTS, SIZES, TreeSettings, themeName, themesOf, switchOn } from './settings';
+import TreePacks from './packs';
 import type TreePlugin from './main';
 
 interface Option { key: string; label: string; }
@@ -9,46 +10,13 @@ interface Choice {
   options: Option[];
   get(s: TreeSettings): string;
   set(s: TreeSettings, key: string): void;
-  labelFor?: (s: TreeSettings, key: string) => string;   // a label that isn't fixed: a secret theme, or a custom theme's own name
-  from?: (s: TreeSettings) => string; // where ‹ › step from when the current value isn't in options
-  when?: (s: TreeSettings) => boolean; // a row shown only some of the time: a theme's own switch
 }
 
 const onOff: Option[] = [{ key: 'off', label: 'off' }, { key: 'on', label: 'on' }];
 
 const fromRecord = (rec: Record<string, string>): Option[] => Object.entries(rec).map(([key, label]) => ({ key, label }));
 
-const CHOICES: Choice[] = [
-  {
-    label: 'theme',
-    options: fromRecord(THEMES).map(o => (o.key === '' ? { key: '', label: 'none' } : o)),
-    get: s => s.theme,
-    set: (s, k) => { s.theme = k; },
-    labelFor: themeName,
-    from: s => s.secretReturn,
-  },
-  // Each theme's own switches sit right under it, and only while it's on (as in Tree)
-  {
-    label: 'crt',
-    options: onOff,
-    when: s => s.theme === 'terminal',
-    get: s => (s.crt ? 'on' : 'off'),
-    set: (s, k) => { s.crt = k === 'on'; },
-  },
-  {
-    label: 'downpour',
-    options: onOff,
-    when: s => s.theme === 'rain',
-    get: s => (s.downpour ? 'on' : 'off'),
-    set: (s, k) => { s.downpour = k === 'on'; },
-  },
-  {
-    label: 'falling rain',
-    options: onOff,
-    when: s => s.theme === 'rain' && s.downpour,
-    get: s => (s.fallingRain ? 'on' : 'off'),
-    set: (s, k) => { s.fallingRain = k === 'on'; },
-  },
+const SETTINGS_ROWS: Choice[] = [
   {
     label: 'font',
     options: fromRecord(FONTS),
@@ -83,6 +51,34 @@ const CHOICES: Choice[] = [
     set: (s, k) => { s.proof = k === 'on'; },
   },
 ];
+
+// The pack row, the theme row (stepping within the pack, never into the next one) and the
+// theme's own switches, worked out each time from the packs installed: as in Tree's quick settings.
+function themeRows(plugin: TreePlugin): Choice[] {
+  const s = plugin.settings, store = plugin.packs;
+  const pack = store.find(s.pack);
+  const rows: Choice[] = [{
+    label: 'pack',
+    options: [...store.all().map(p => ({ key: p.id, label: p.name.toLowerCase() })), ...(pack ? [] : [{ key: s.pack, label: s.pack }])],
+    get: s => s.pack,
+    set: (_s, k) => plugin.selectPack(k),
+  }];
+  if (!pack) return rows;   // its pack isn't here (yet): nothing to step through
+  rows.push({
+    label: 'theme',
+    options: themesOf(pack).map(t => ({ key: t.id, label: themeName(s, pack.id, t) })),
+    get: s => s.theme,
+    set: (_s, k) => plugin.selectTheme(pack.id, k),
+  });
+  const theme = TreePacks.findTheme(pack, s.theme);
+  for (const sw of TreePacks.switchesOf(theme)) rows.push({
+    label: sw.label,
+    options: onOff,
+    get: s => (switchOn(s, theme, sw.label) ? 'on' : 'off'),
+    set: (_s, k) => plugin.setSwitch(sw.label, k === 'on'),
+  });
+  return rows;
+}
 
 // Small Tree-style popover above the status line. ‹ › flick through options;
 // clicking the name opens the full list under that row.
@@ -138,18 +134,17 @@ export class QuickPanel {
     const s = this.plugin.settings;
     this.el.empty();
 
-    for (const choice of CHOICES) {
-      if (choice.when && !choice.when(s)) continue;
+    for (const choice of [...themeRows(this.plugin), ...SETTINGS_ROWS]) {
       const current = choice.get(s);
       const found = choice.options.findIndex(o => o.key === current);
-      const i = found >= 0 ? found : Math.max(0, choice.options.findIndex(o => o.key === choice.from?.(s)));
+      const i = Math.max(0, found);
       const step = (dir: 1 | -1) => choice.options[(i + dir + choice.options.length) % choice.options.length].key;
       const isOpen = this.listOpen === choice.label;
 
       const row = this.el.createDiv({ cls: 'tree-quick-row' });
       row.createSpan({ cls: 'tree-quick-label', text: choice.label });
       row.createEl('button', { cls: 'tree-quick-arrow', text: '‹' }).onclick = () => this.pick(choice, step(-1));
-      const value = row.createEl('button', { cls: 'tree-quick-value' + (isOpen ? ' is-active' : ''), text: choice.labelFor?.(s, current) ?? (found >= 0 ? choice.options[i].label : current) });
+      const value = row.createEl('button', { cls: 'tree-quick-value' + (isOpen ? ' is-active' : ''), text: found >= 0 ? choice.options[i].label : current });
       row.createEl('button', { cls: 'tree-quick-arrow', text: '›' }).onclick = () => this.pick(choice, step(1));
 
       // On/off rows just flip; everything else opens its list
@@ -162,7 +157,7 @@ export class QuickPanel {
       if (isOpen) {
         const list = this.el.createDiv({ cls: 'tree-quick-list' });
         for (const opt of choice.options) {
-          const item = list.createEl('button', { cls: 'tree-quick-item' + (opt.key === current ? ' is-current' : ''), text: choice.labelFor?.(s, opt.key) ?? opt.label });
+          const item = list.createEl('button', { cls: 'tree-quick-item' + (opt.key === current ? ' is-current' : ''), text: opt.label });
           item.onclick = () => { this.listOpen = null; this.pick(choice, opt.key); };
         }
         list.querySelector<HTMLElement>('.is-current')?.scrollIntoView({ block: 'nearest' });
