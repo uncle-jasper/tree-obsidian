@@ -5,9 +5,11 @@ import type { JustWriteState } from './justwrite';
 import type { TimeGoal, WordGoal } from './status';
 import { WP_SECRET_ID } from './wordpress';
 import { DIALECTS } from './proof';
+import TreePacks, { Choices, Pack, PackTheme, Remembered } from './packs';
 
 export interface TreeSettings {
-  theme: string;        // '' = leave Obsidian's theme alone
+  pack: string;         // 'classic', 'retro', or an installed pack's id
+  theme: string;        // a theme of that pack; '' (Classic only) = leave Obsidian's theme alone
   font: string;         // '' = Obsidian's text font
   fontSize: number;     // 0  = Obsidian's size
   statusLine: boolean;
@@ -30,16 +32,18 @@ export interface TreeSettings {
   timeGoal: TimeGoal | null;   // one goal at a time: setting either clears the other
   wpUrl: string;
   wpUser: string;   // the application password lives in Obsidian's secure storage, not here
-  secretReturn: string;   // the theme to go "back to green" to (terminal, with crt on)
-  crt: boolean;           // terminal: the CRT look
-  downpour: boolean;      // rain: the darker downpour colors
-  fallingRain: boolean;   // downpour: rain streaks behind the note
+  packLast: Record<string, string>;            // pack id → the theme last used in it
+  packSwitches: Record<string, Choices>;       // 'pack/theme' → its switches (crt, falling rain…)
+  packRemembered: Remembered | null;           // colors of the shelf theme in use, for when its pack is missing
+  packSeen: Record<string, string>;            // shelf packs already seen in settings: id → version
+  packsMigrated: boolean;                      // settings from before packs (2.0) moved over
   custom: CustomColors;
   custom2: CustomColors;
   custom3: CustomColors;
 }
 
 export const DEFAULT_SETTINGS: TreeSettings = {
+  pack: 'classic',
   theme: 'parchment',
   font: '',
   fontSize: 0,
@@ -63,50 +67,52 @@ export const DEFAULT_SETTINGS: TreeSettings = {
   timeGoal: null,
   wpUrl: '',
   wpUser: '',
-  secretReturn: 'terminal',
-  crt: false,
-  downpour: false,
-  fallingRain: true,
+  packLast: {},
+  packSwitches: {},
+  packRemembered: null,
+  packSeen: {},
+  packsMigrated: false,
   custom:  { bg: '#f5f0e8', text: '#2c2416', accent: '#8b6e4e' },   // Tree's defaults
   custom2: { bg: '#f5f0e8', text: '#2c2416', accent: '#8b6e4e' },
   custom3: { bg: '#f5f0e8', text: '#2c2416', accent: '#8b6e4e' },
 };
 
-export const THEMES: Record<string, string> = {
-  '':                'none (use Obsidian theme)',
-  parchment:         'parchment',
-  dark:              'dark',
-  moss:              'moss',
-  slate:             'slate',
-  paper:             'paper',
-  sage:              'sage',
-  ash:               'ash',
-  gameboy:           'game boy',
-  moonwalker:        'moonwalker',
-  rain:              'rain',
-  terminal:          'terminal',
-  custom:            'custom',
-  custom2:           'custom 2',
-  custom3:           'custom 3',
-};
+// ── Themes come in packs (packs.js, shared with Tree and Ginkgo) ──
+// Classic and Retro are built in and drawn by this plugin's own CSS (themes.css). Installed packs
+// are painted by packs.js. Classic here also has "none", to leave Obsidian's theme alone.
+export const NONE_THEME: PackTheme = { id: '', name: 'none', light: true, effects: [],
+  colors: { bg: '#ffffff', surface: '#ffffff', text: '#000000', accent: '#000000', muted: '#000000', border: '#000000' } };
+export const themesOf = (pack: Pack) => (pack.id === 'classic' ? [NONE_THEME, ...pack.themes] : pack.themes);
+export const CUSTOM_LABELS: Record<CustomKey, string> = { custom: 'custom', custom2: 'custom 2', custom3: 'custom 3' };
 
-// Easter-egg themes: never offered in a menu, only reached by code (see eggs.ts), as in Tree
-export const SECRET_THEMES: Record<string, string> = {
-  'amber-crt':       'amber crt',
-  'doogie-journal':  'doogie journal',
-};
+export const switchKey = (s: TreeSettings) => s.pack + '/' + s.theme;
+export const choicesOf = (s: TreeSettings): Choices => s.packSwitches[switchKey(s)] ?? {};
+export function switchOn(s: TreeSettings, theme: PackTheme | null, label: string) {
+  const c = choicesOf(s)[label];
+  if (typeof c === 'boolean') return c;
+  return TreePacks.switchesOf(theme).find(x => x.label === label)?.on ?? false;
+}
+// The custom slot in use, if any
+export const customKey = (s: TreeSettings): CustomKey | null => (s.pack === 'classic' && isCustom(s.theme) ? s.theme : null);
 
-// What's on screen: a theme plus its switch. Terminal with crt on looks like terminal crt,
-// rain with downpour on looks like downpour. These looks have their own CSS but no menu entry.
-export const VARIANT_LOOKS = ['terminal-crt', 'downpour'];
-export const lookOf = (s: TreeSettings) =>
-  (s.theme === 'terminal' && s.crt ? 'terminal-crt' : s.theme === 'rain' && s.downpour ? 'downpour' : s.theme);
+// What's on screen: a theme plus its switches. Each look has its own CSS class (tree-theme-<look>);
+// themes from installed packs are all "pack", painted by packs.js.
+export const LOOKS = ['parchment', 'paper', 'ash', 'sage', 'dark', 'moss', 'slate', 'custom', 'custom2', 'custom3',
+  'gameboy', 'moonwalker', 'terminal', 'terminal-crt', 'amber-terminal', 'amber-crt', 'doogie-plain', 'doogie-journal', 'pack'];
+export function lookOf(s: TreeSettings): string {
+  if (s.pack === 'classic') return s.theme;
+  if (s.pack !== 'retro') return 'pack';
+  const crt = switchOn(s, TreePacks.findTheme(TreePacks.BUILTIN[1], s.theme), 'crt');
+  if (s.theme === 'terminal') return crt ? 'terminal-crt' : 'terminal';
+  if (s.theme === 'amber-crt') return crt ? 'amber-crt' : 'amber-terminal';
+  if (s.theme === 'doogie-journal') return crt ? 'doogie-journal' : 'doogie-plain';
+  return s.theme;
+}
 
-export const themeLabel = (key: string) => (key === '' ? 'none' : THEMES[key] ?? SECRET_THEMES[key] ?? key);
 // A named custom theme goes by its name wherever themes are listed
 // with (C1) to (C3) after it, so it still reads as one of the custom themes
-export const themeName = (s: TreeSettings, key: string) =>
-  (isCustom(key) && s[key].name ? s[key].name + ' (C' + (CUSTOM_KEYS.indexOf(key) + 1) + ')' : themeLabel(key));
+export const themeName = (s: TreeSettings, packId: string, theme: PackTheme) =>
+  (packId === 'classic' && isCustom(theme.id) && s[theme.id].name ? s[theme.id].name + ' (C' + (CUSTOM_KEYS.indexOf(theme.id) + 1) + ')' : theme.name);
 
 export const FONTS: Record<string, string> = {
   '':                                     'Obsidian default',
@@ -122,7 +128,7 @@ export const FONTS: Record<string, string> = {
   "'Tree PrintChar21', monospace":        'Print Char 21',
 };
 
-export const SIZES = [0, 14, 16, 18, 20, 22, 24, 26];
+export const SIZES = [0, 12, 14, 16, 18, 20, 22, 24, 26];
 
 export class TreeSettingTab extends PluginSettingTab {
   constructor(app: App, private plugin: TreePlugin) {
@@ -140,27 +146,28 @@ export class TreeSettingTab extends PluginSettingTab {
     new Setting(containerEl).setName('Appearance').setHeading();
     if (locked) containerEl.createEl('p', { cls: 'setting-item-description', text: 'Locked during Just Write. Write 500 words, or wait out the 30 minutes.' });
 
+    // Themes come in packs, as in Tree and Ginkgo: the pack, then one of its themes, then that theme's switches
+    const store = this.plugin.packs;
+    const pack = store.find(s.pack) ?? TreePacks.BUILTIN[0];
+    new Setting(containerEl)
+      .setName('Pack')
+      .setDesc('Classic and Retro are built in. More are on the shelf, under Packs below.')
+      .addDropdown(d => d.addOptions(Object.fromEntries(store.all().map(p => [p.id, p.name])))
+        .addOptions(store.find(s.pack) ? {} : { [s.pack]: s.packRemembered?.pack === s.pack ? s.pack + ' (not installed)' : s.pack })
+        .setValue(s.pack).setDisabled(locked)
+        .onChange(async v => { this.plugin.selectPack(v); await save(); this.display(); }));
     new Setting(containerEl)
       .setName('Theme')
-      .setDesc('Tree palette. Works best with Obsidian\'s default theme underneath.')
-      .addDropdown(d => d.addOptions(Object.fromEntries(Object.keys(THEMES).map(k => [k, isCustom(k) ? themeName(s, k) : THEMES[k]])))
-        // A secret theme shows as current while you're in it, but is never offered as a choice
-        .addOptions(SECRET_THEMES[s.theme] ? { [s.theme]: SECRET_THEMES[s.theme] } : {})
+      .setDesc(pack.id === 'classic' ? 'Works best with Obsidian\'s default theme underneath. None leaves Obsidian\'s theme alone.' : 'Works best with Obsidian\'s default theme underneath.')
+      .addDropdown(d => d.addOptions(Object.fromEntries(themesOf(pack).map(t => [t.id, themeName(s, pack.id, t)])))
         .setValue(s.theme).setDisabled(locked)
-        .onChange(async v => { s.theme = v; await save(); this.display(); }));
-
+        .onChange(async v => { this.plugin.selectTheme(pack.id, v); await save(); this.display(); }));
     // A theme's own switches, shown only while it's on (as in Tree's quick settings)
-    if (s.theme === 'terminal') {
-      new Setting(containerEl).setName('CRT').setDesc('Scanlines, a vignette, a little flicker and a glowing block cursor.')
-        .addToggle(t => t.setValue(s.crt).setDisabled(locked).onChange(async v => { s.crt = v; await save(); }));
-    }
-    if (s.theme === 'rain') {
-      new Setting(containerEl).setName('Downpour').setDesc('A darker sky, with rain falling behind the note.')
-        .addToggle(t => t.setValue(s.downpour).setDisabled(locked).onChange(async v => { s.downpour = v; await save(); this.display(); }));
-      if (s.downpour) {
-        new Setting(containerEl).setName('Falling rain').setDesc('Turn off to keep the downpour colors without the rain.')
-          .addToggle(t => t.setValue(s.fallingRain).setDisabled(locked).onChange(async v => { s.fallingRain = v; await save(); }));
-      }
+    const theme = TreePacks.findTheme(pack, s.theme);
+    for (const sw of TreePacks.switchesOf(theme)) {
+      new Setting(containerEl).setName(sw.label[0].toUpperCase() + sw.label.slice(1))
+        .addToggle(t => t.setValue(switchOn(s, theme, sw.label)).setDisabled(locked)
+          .onChange(async v => { this.plugin.setSwitch(sw.label, v); await save(); }));
     }
 
     new Setting(containerEl)
@@ -178,15 +185,15 @@ export class TreeSettingTab extends PluginSettingTab {
 
     // Only the custom themes can be named, given a cursor, exported or imported over. The built-in ones are fixed.
     for (const key of CUSTOM_KEYS) {
-      new Setting(containerEl).setName(THEMES[key].replace('c', 'C') + ' theme').setHeading();
+      new Setting(containerEl).setName(CUSTOM_LABELS[key].replace('c', 'C') + ' theme').setHeading();
       const colors = s[key];
       new Setting(containerEl)
         .setName('Name')
-        .setDesc('Shown in place of "' + THEMES[key] + '" wherever themes are listed.')
-        .addText(t => t.setPlaceholder(THEMES[key]).setValue(colors.name ?? '').setDisabled(locked).onChange(async v => {
+        .setDesc('Shown in place of "' + CUSTOM_LABELS[key] + '" wherever themes are listed.')
+        .addText(t => t.setPlaceholder(CUSTOM_LABELS[key]).setValue(colors.name ?? '').setDisabled(locked).onChange(async v => {
           colors.name = v.trim().slice(0, 24);
           const option = containerEl.querySelector<HTMLOptionElement>('option[value="' + key + '"]');
-          if (option) option.textContent = themeName(s, key);
+          if (option && s.pack === 'classic') option.textContent = themeName(s, 'classic', TreePacks.findTheme(TreePacks.BUILTIN[0], key)!);
           await save();
         }));
       const rows: Partial<Record<'bg' | 'text' | 'accent', Setting>> = {};
@@ -200,7 +207,7 @@ export class TreeSettingTab extends PluginSettingTab {
               colors[part] = v;
               this.plugin.pickingColor = true;   // don't ask about readability mid-drag
               showReadable();
-              if (s.theme !== key) { s.theme = key; this.display(); }   // picking a color switches to that theme
+              if (customKey(s) !== key) { this.plugin.selectTheme('classic', key); this.display(); }   // picking a color switches to that theme
               await save();
             });
           });
@@ -243,6 +250,8 @@ export class TreeSettingTab extends PluginSettingTab {
         .addButton(b => b.setButtonText('Export').onClick(() => this.exportTheme(key)))
         .addButton(b => b.setButtonText('Import').setDisabled(locked).onClick(() => this.importTheme(key)));
     }
+
+    this.displayPacks(containerEl, locked);
 
     new Setting(containerEl).setName('Status line').setHeading();
 
@@ -376,7 +385,7 @@ export class TreeSettingTab extends PluginSettingTab {
   // Desktop hands you the file. Obsidian on iPad and iPhone can't, so there it goes into the vault.
   private async exportTheme(key: CustomKey) {
     const theme = this.plugin.settings[key];
-    const name = themeFileName(theme, THEMES[key]);
+    const name = themeFileName(theme, CUSTOM_LABELS[key]);
     if (Platform.isMobile) {
       await this.app.vault.adapter.write(name, themeToFile(theme));
       new Notice('theme exported to your vault: ' + name);
@@ -389,6 +398,61 @@ export class TreeSettingTab extends PluginSettingTab {
     window.setTimeout(() => URL.revokeObjectURL(url), 1000);
   }
 
+  // Packs: what's installed (saved in the vault, so it syncs), what's on the shelf, and importing a file.
+  // As in Tree's Packs screen; built-in packs can't be removed.
+  private displayPacks(containerEl: HTMLElement, locked: boolean) {
+    const store = this.plugin.packs;
+    new Setting(containerEl).setName('Packs').setHeading();
+    containerEl.createEl('p', { cls: 'setting-item-description',
+      text: 'Installed packs are kept in the "' + store.folder + '" folder of your vault, so they sync with your notes. Uninstalling one never touches your writing.' });
+    const strip = (row: Setting, colors: string[]) => {
+      const el = row.descEl.createDiv({ cls: 'tree-pack-strip' });
+      for (const c of colors) el.createSpan().style.backgroundColor = c;
+    };
+    const after = (msg: string) => { new Notice(msg); this.display(); };
+
+    new Setting(containerEl).setName('Classic, Retro').setDesc('Built in.');
+    for (const p of store.installedList()) {
+      const row = new Setting(containerEl).setName(p.name + '  ' + p.version).setDesc(p.description);
+      strip(row, p.themes.map(t => t.colors.bg));
+      const entry = store.shelfEntry(p.id);
+      if (entry && TreePacks.newer(p.version, entry.version))
+        row.addButton(b => b.setButtonText('Update').setCta().setDisabled(locked).onClick(async () => { b.setDisabled(true); after(await store.installFromShelf(entry, 'updated')); }));
+      else
+        row.addButton(b => b.setButtonText('Export').onClick(() => store.exportPack(p.id)));
+      row.addButton(b => b.setButtonText('Uninstall').setDisabled(locked).onClick(async () => after(await store.uninstall(p.id))));
+    }
+
+    if (store.shelfState === 'ok') {
+      const missing = (store.shelf ?? []).filter(e => !store.installed[e.id]);
+      for (const e of missing) {
+        const row = new Setting(containerEl).setName(e.name + '  ' + e.version).setDesc('On the shelf. ' + e.description);
+        strip(row, e.swatches);
+        row.addButton(b => b.setButtonText('Install').setCta().setDisabled(locked).onClick(async () => { b.setDisabled(true); after(await store.installFromShelf(e, 'installed')); }));
+      }
+      if (!missing.length) containerEl.createEl('p', { cls: 'setting-item-description', text: 'You have every pack on the shelf.' });
+      store.markSeen();
+    } else {
+      containerEl.createEl('p', { cls: 'setting-item-description', text: store.shelfState === 'offline' ? 'Shelf not reachable.' : 'Checking the shelf…' });
+      if (store.shelfState !== 'checking') store.checkShelf(true).then(() => { if (containerEl.isConnected) this.display(); });
+    }
+
+    new Setting(containerEl)
+      .setName('Import a pack file')
+      .setDesc('Installs a .tree-pack.json from your vault or computer.')
+      .addButton(b => b.setButtonText('Import').setDisabled(locked).onClick(() => {
+        const input = document.body.createEl('input', { type: 'file', attr: { accept: '.json,application/json', style: 'display: none' } });
+        input.onchange = async () => {
+          const file = input.files?.[0];
+          input.remove();
+          if (!file) return;
+          const r = await store.install(await file.text());
+          after(r.ok ? r.pack.name.toLowerCase() + ' installed. it\'s in the pack list.' : 'not installed: ' + r.error);
+        };
+        input.click();
+      }));
+  }
+
   private importTheme(key: CustomKey) {
     const input = document.body.createEl('input', { type: 'file', attr: { accept: '.json,application/json', style: 'display: none' } });
     input.onchange = async () => {
@@ -398,7 +462,7 @@ export class TreeSettingTab extends PluginSettingTab {
       const theme = themeFromFile(await file.text());
       if (!theme) { new Notice('not a theme file.'); return; }
       this.plugin.settings[key] = theme;
-      this.plugin.settings.theme = key;
+      this.plugin.selectTheme('classic', key);
       await this.plugin.saveSettings();
       this.display();
       new Notice('theme imported.');

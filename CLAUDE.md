@@ -18,7 +18,9 @@ An Obsidian plugin (id `tree-writer`) that brings the writing feel of Tree, a si
 - `src/quick.ts`: the Aa panel.
 - `src/editor.ts`: zen, typewriter, Tab-out (CodeMirror extensions).
 - `src/proof.ts`: proof mode (Harper). `src/copy.ts`: Copy clean Markdown.
-- `src/justwrite.ts`, `src/eggs.ts`, `src/wordpress.ts`, `src/custom.ts`.
+- `src/justwrite.ts`, `src/wordpress.ts`, `src/custom.ts`.
+- `src/packs.js`: the theme-pack engine, a byte-for-byte copy of `../tree/packs.js` (types in `packs.d.ts`). Never edit it here: change Tree's, copy it over. `scripts/check-engine.cjs` stops the build when the two differ.
+- `src/packstore.ts`: installed packs (files in the vault's `Tree packs/` folder) and the shelf. `src/packlayers.ts`: a pack theme's rain, light and scanlines in each note. `src/rain-seed.json`: the Rain pack 1.0.0, installed for anyone who used rain before 2.0.
 - `css/themes.css` and `css/plugin.css`, combined with the fonts into `styles.css` by `scripts/build-css.mjs`. Edit `css/`, never `styles.css`.
 - `fonts/`: Tree's TTFs, copied from Tree. Other fonts come from npm packages.
   - The build compresses every TTF to WOFF2 (`wawoff2`), whole, with no subsetting. `styles.css` went from 2.4 MB to 0.9 MB; the iPhone was hanging on cold starts.
@@ -26,7 +28,8 @@ An Obsidian plugin (id `tree-writer`) that brings the writing feel of Tree, a si
 ## Build, install, release
 
 ```
-npm run build   # tsc, esbuild, load smoke test (scripts/smoke.cjs), styles.css
+npm run build   # engine check, tsc, esbuild, load smoke test (scripts/smoke.cjs), styles.css
+node scripts/test-packs.mjs   # packs in the plugin, against a stand-in Obsidian
 ```
 
 - **Mac:** copy `main.js`, `manifest.json` and `styles.css` to `~/Dropbox/Apps/remotely-save/ObsSync/.obsidian/plugins/tree-writer/`.
@@ -71,17 +74,18 @@ npm run build   # tsc, esbuild, load smoke test (scripts/smoke.cjs), styles.css
   - Theme file, shared by all three apps: `Name.tree-theme.json` holding `{ treeTheme: 1, name, bg, text, accent, cursor, readable }`. `readable` is left out until answered; a file without it asks on import if it's faint. Import needs three `#rrggbb` colors, and fills the slot it was started from. Messages are Tree's: "theme exported." / "theme imported." / "not a theme file."
   - Export on desktop is a download. Obsidian on iPad can't download, so there the file is written to the vault root.
   - Ginkgo's shell works out surface, muted and border differently from Tree and the plugin, so a shared theme matches on the three main colors only.
-- **Line cursor** (0.17.1): iA Writer's shape, a 3px bar with rounded ends (`border-radius: 1.5px`), still 1.2× the line height, in the theme's cursor/accent color, with Tree's blink. Was 2.5px square. Plugin only for now: Tree and Ginkgo are still 2.5px.
-- **Font sizes:** 14 to 26px in steps of 2, plus Obsidian's own. The same list in Tree and Ginkgo.
+- **Line cursor** (0.17.1): iA Writer's shape, a 3px bar with rounded ends (`border-radius: 1.5px`), still 1.2× the line height, in the theme's cursor/accent color, with Tree's blink. Was 2.5px square. Tree and Ginkgo have it too since their 2.0.
+- **Font sizes:** 12 to 26px in steps of 2, plus Obsidian's own. The same list in Tree and Ginkgo (12px added in 2.0).
 - **Tables** (0.17.2): Markdown and Dataview tables are 90% of Tree's font size, while a Tree size is on (`--tree-table-size` in `plugin.css`). Obsidian resolves `--table-text-size` on body from its own size, so tables used to come out bigger than the note's text. Dan chose 90% over matching the text: monospace cells wrap less.
-- **Amber CRT and Doogie Journal:** never in any menu. Konami and ABACABB both require the CRT look (terminal with crt on). "back to green." returns to terminal with crt on.
-- **Theme switches** (0.18.0): as in Tree and Ginkgo, a theme's variants are switches under it, not separate themes. Terminal has **crt**; rain has **downpour**, and downpour has **falling rain**. They show in the Aa panel right under the theme row (`when` in `quick.ts`) and under Theme in settings, only while that theme is on.
-  - `lookOf()` in `settings.ts` turns theme + switch into what's drawn: `terminal-crt` or `downpour`. Those keep their own CSS classes (`tree-theme-terminal-crt`, `tree-theme-downpour`) but aren't in any list (`VARIANT_LOOKS`).
-  - 0.18.0 moved a saved `terminal-crt` to terminal with crt on (`loadSettings`).
-- **Rain / Downpour:** rain is cloudy slate and sea-grey; downpour is darker and teal, with rain streaks falling behind each open note only (`rain.ts`: a canvas first in each markdown leaf's `.view-content`; the editor's backgrounds go transparent while it's there, `.tree-rain-on`). Not behind the sidebars or the title bar. Dan chose note-only.
-  - Same colors and streaks as Tree and Ginkgo. Paused while Obsidian is hidden; a still layer under reduced motion.
-  - Turning falling rain off lets the drops already falling finish; turning it on starts new drops from the top.
-  - `umbre11a`, typed on its own line in downpour, erases itself and flips falling rain: "the rain has let up." / "grab your umbrella." Spelled with 1s so the real word never triggers it (Dan's call).
+- **Theme packs** (2.0, `PACKS-PLAN.md` in Tree): themes come in packs, as in Tree and Ginkgo 2.0. Settings hold `pack` and `theme` (a theme of that pack). The Aa panel has a **pack** row above **theme**; theme steps within the pack, never into the next one; a pack opens on the theme last used in it (`packLast`), its everyday theme the first time. Installed packs follow Classic and Retro, alphabetically.
+  - **Classic** (none, parchment … slate, custom 1–3) and **Retro** (game boy, moonwalker, terminal, amber terminal, doogie journal) are built in and drawn by this plugin's own CSS, one class per look (`LOOKS`, `lookOf()` in `settings.ts`). "none" (leave Obsidian's theme alone) is plugin-only, first in Classic. It's remembered as Classic's last theme like any other (`selectPack()` in `main.ts`): the engine only knows Classic's own themes.
+  - A theme's switches come from its pack (`TreePacks.switchesOf`), saved per theme in `packSwitches['pack/theme']`. They show under the theme in the Aa panel and in settings. Terminal, amber terminal and doogie journal have **crt** (on by default for amber and doogie): `terminal`/`terminal-crt`, `amber-terminal`/`amber-crt`, `doogie-plain`/`doogie-journal`. Crt off gives a bar cursor (amber, or doogie's light grey).
+  - The Konami, ABACABB and umbre11a codes are gone (2.0). Amber crt is now amber terminal, an ordinary Retro theme.
+  - **Shelf packs** (`tree-packs` on GitHub Pages) are painted by `packs.js`: colors as `--tree-*` on body plus glow and sheen rules, once for the window (`colorStage` in `main.ts`, body class `tree-theme-pack`); rain, light and scanlines behind or over **each note only** (`packlayers.ts`, one contained stage per markdown leaf's `.view-content`; the note's backgrounds go see-through while something is drawn behind it, `.tree-pack-backdrop`). Not behind the sidebars or the title bar: Dan's choice for rain, kept for every pack.
+  - Installed packs are files in the vault's `Tree packs/` folder (`<id>.tree-pack.json`), so they sync to the iPad; they're reloaded when a file there changes. A shelf theme whose pack isn't on this device (not synced yet) shows its remembered colors (`packRemembered`) and keeps the setting, so it comes back by itself.
+  - Packs section in settings, as Tree's Packs screen: installed (export, uninstall, update when the shelf has a newer version), the shelf (install), import a pack file. Uninstalling the pack in use falls back to Classic's dark and says so.
+  - 2.0 moved old settings over (`movePacksOver()` in `main.ts`): terminal keeps its crt, rain and downpour become the Rain pack (installed from `rain-seed.json`) with falling rain as it was, amber crt and doogie journal go to Retro with crt on.
+- **Falling rain** (the Rain pack's switch): the same streaks as Tree's, drawn by `packs.js`. Paused while Obsidian is hidden; still under reduced motion. Turning it off lets the drops already falling finish; turning it on starts new drops from the top.
 - **WordPress:**
   - Title: the opening `# Heading`, else the file name.
   - Repeat the title as an `<h3>` at the top of the body. The blog's theme doesn't show post titles.
@@ -94,7 +98,7 @@ npm run build   # tsc, esbuild, load smoke test (scripts/smoke.cjs), styles.css
   - The Aa panel (0.18.1) gets a faint halo only, `0 0 0.3em` at 40% of the text color, and its labels and arrows are the text color at 60%. It sits inside the status line and used to inherit the full glow, which smeared its 11px text; the muted `#1a3fae` labels were nearly invisible on black. Plugin only: Tree and Ginkgo's quick settings don't glow.
   - iOS only: headings glow at 50%, bold text at 50%. WebKit blooms bold text about twice as bright as Chromium, so full-strength headings smeared on iPhone while matching body text on Mac. Check glow changes in both engines.
   - Tree and Ginkgo do the same in WebKit only (`@supports (font: -apple-system-body)`): editor headings at 60%, preview headings at 45%, bold at 50%.
-- **Glow themes (Moonwalker, Terminal, Terminal CRT, Amber CRT):** every text glow follows the text color (`currentColor`, or `color-mix(in srgb, currentColor N%, transparent)` for a fainter one), so dim text never sits under a brighter glow and blurs. Applies in all three apps. Terminal links are `#7dff7d`, Amber CRT links `#ffd27a`. Doogie Journal has no glow.
+- **Glow themes (Moonwalker, Terminal, Terminal CRT, Amber terminal):** every text glow follows the text color (`currentColor`, or `color-mix(in srgb, currentColor N%, transparent)` for a fainter one), so dim text never sits under a brighter glow and blurs. Applies in all three apps. Terminal links are `#7dff7d`, Amber CRT links `#ffd27a`. Doogie Journal has no glow.
 - **Bold:** drawn as Tree draws it, weight 700 plus a 0.6px `-webkit-text-stroke`, the same as bold in the Tree and Ginkgo editors, while a Tree font is on. Most bundled fonts have no bold face, and Chromium's synthetic bold barely shows.
   - Known differences, left for now. Dan may want all three in line later:
     - Reading view bold is 0.6px here; Tree and Ginkgo's preview bold is 0.4px.

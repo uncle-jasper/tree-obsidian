@@ -238,6 +238,7 @@ body > .tree-quick {
   grid-template-columns: 6.5em auto 15em auto;
   align-items: center;
 }
+.tree-quick-row.is-spacer { visibility: hidden; pointer-events: none; }
 .tree-quick-label { opacity: 0.7; }
 .tree-quick button {
   all: unset;
@@ -361,13 +362,15 @@ body.tree-just-write .tree-quick-toggle { display: none; }
 .tree-proof-popover .tree-proof-actions button { color: var(--text-muted); }
 .tree-proof-popover button:hover { background: var(--background-modifier-hover); color: var(--text-normal); }
 
-/* ── Downpour's falling rain (rain.ts): a canvas at the back of each note, under the text ── */
-.tree-rain {
-  position: absolute; inset: 0; width: 100%; height: 100%;
-  pointer-events: none;
-}
-body.tree-rain-on .workspace-leaf-content[data-type="markdown"] > .view-content { position: relative; }
-body.tree-rain-on .workspace-leaf-content[data-type="markdown"] > .view-content > :not(.tree-rain) { position: relative; }
-body.tree-rain-on .workspace-leaf-content[data-type="markdown"] > .view-content :is(.markdown-source-view, .cm-editor, .cm-scroller, .cm-gutters, .markdown-reading-view, .markdown-preview-view) {
+/* ── A theme pack's layers (packlayers.ts, packs.js): rain and light at the back of each note,
+   scanlines and vignettes over it; never the sidebars. The note's backgrounds go see-through while
+   something is drawn behind it (tree-pack-backdrop, set by packs.js). ── */
+.workspace-leaf-content[data-type="markdown"] > .view-content:has(> .tp-layer) { position: relative; }
+.workspace-leaf-content[data-type="markdown"] > .view-content:has(> .tp-behind) > :not(.tp-layer) { position: relative; }
+.workspace-leaf-content[data-type="markdown"] > .view-content.tree-pack-backdrop :is(.markdown-source-view, .cm-editor, .cm-scroller, .cm-gutters, .markdown-reading-view, .markdown-preview-view) {
   background-color: transparent;
 }
+
+/* Packs in settings: each pack's colors as a strip of swatches */
+.tree-pack-strip { display: flex; gap: 3px; margin-top: 4px; }
+.tree-pack-strip span { width: 16px; height: 8px; border-radius: 2px; border: 1px solid var(--background-modifier-border); }

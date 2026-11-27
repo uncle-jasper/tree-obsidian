@@ -11,12 +11,13 @@ body.tree-theme-sage,
 body.tree-theme-ash,
 body.tree-theme-gameboy,
 body.tree-theme-moonwalker,
-body.tree-theme-rain,
-body.tree-theme-downpour,
 body.tree-theme-terminal,
 body.tree-theme-terminal-crt,
+body.tree-theme-amber-terminal,
 body.tree-theme-amber-crt,
+body.tree-theme-doogie-plain,
 body.tree-theme-doogie-journal,
+body.tree-theme-pack,
 body.tree-theme-custom,
 body.tree-theme-custom2,
 body.tree-theme-custom3 {
@@ -168,18 +169,8 @@ body.tree-theme-moonwalker .cm-cursor {
 }
 body.tree-theme-moonwalker .cm-dropCursor { border-left-color: #6cb5f8 !important; }
 
-/* ── Rain: cloudy slate and sea-grey. Downpour is rain with its switch on: a darker sky,
-   with the falling rain drawn by rain.ts. The same values are in Tree and Ginkgo. ── */
-body.tree-theme-rain {
-  --tree-bg: #192125; --tree-surface: #1f282c; --tree-text: #c3cfd1;
-  --tree-accent: #7fa6b0; --tree-muted: #5b6f74; --tree-border: #283438;
-  --tree-on-accent: #192125; --tree-selection: rgba(127,166,176,0.24);
-}
-body.tree-theme-downpour {
-  --tree-bg: #0e1517; --tree-surface: #131b1e; --tree-text: #b0c3c5;
-  --tree-accent: #66a0a8; --tree-muted: #42585c; --tree-border: #1a2729;
-  --tree-on-accent: #0e1517; --tree-selection: rgba(102,160,168,0.25);
-}
+/* ── Themes from installed packs (packs.js): their colors arrive as --tree-* on body, and their
+   glow and sheen as packs.js's own rules. Rain was here until 2.0; it's the Rain pack now. ── */
 
 body.tree-theme-terminal {
   --tree-bg: #0a0a0a; --tree-surface: #0f0f0f; --tree-text: #22cc22;
@@ -191,7 +182,7 @@ body.tree-theme-terminal {
 body.tree-theme-terminal .markdown-source-view.mod-cm6 .cm-content,
 body.tree-theme-terminal .markdown-rendered { text-shadow: 0 0 8px color-mix(in srgb, currentColor 44%, transparent); }
 body.tree-theme-terminal .tree-status { text-shadow: 0 0 6px color-mix(in srgb, currentColor 50%, transparent); }
-body.tree-theme-terminal .cm-cursor { border-left-color: #33ff33 !important; caret-color: #33ff33; }
+body.tree-theme-terminal .cm-cursor { border-left-color: #22cc22 !important; caret-color: #22cc22; }
 
 /* ── Terminal CRT: terminal with its crt switch on (lookOf() in settings.ts). Same green palette, with the CRT effect. ── */
 body.tree-theme-terminal-crt {
@@ -211,12 +202,24 @@ body.tree-theme-terminal-crt .cm-cursor,
 body.tree-theme-terminal-crt .cm-dropCursor {
   border-left: none !important;
   width: 1ch !important;
-  background-color: #33ff33;
-  box-shadow: 0 0 10px rgba(51,255,51,0.55), 0 0 3px rgba(51,255,51,0.7);
+  background-color: #22cc22;
+  box-shadow: 0 0 10px rgba(34,204,34,0.55), 0 0 3px rgba(34,204,34,0.7);
   transform: none;
 }
 
-/* ── Amber CRT (hidden theme — Konami code easter egg in tree) ─────────── */
+/* ── Amber terminal with crt off (2.0): amber on black, terminal's soft glow, an amber bar cursor ── */
+body.tree-theme-amber-terminal {
+  --tree-bg: #0a0a0a; --tree-surface: #0f0f0f; --tree-text: #ffb000;
+  --tree-accent: #7a4a00; --tree-muted: #a06a00; --tree-border: #3a2200;
+  --tree-on-accent: #ffb000; --tree-selection: rgba(200,140,0,0.35);
+  --text-accent: #ffd27a; --text-accent-hover: #ffd27a;
+}
+body.tree-theme-amber-terminal .markdown-source-view.mod-cm6 .cm-content,
+body.tree-theme-amber-terminal .markdown-rendered { text-shadow: 0 0 8px color-mix(in srgb, currentColor 44%, transparent); }
+body.tree-theme-amber-terminal .tree-status { text-shadow: 0 0 6px color-mix(in srgb, currentColor 40%, transparent); }
+body.tree-theme-amber-terminal .cm-cursor { border-left-color: #ffb000 !important; caret-color: #ffb000; }
+
+/* ── Amber terminal with crt on (Retro's amber terminal; amber crt before 2.0) ─────────── */
 body.tree-theme-amber-crt {
   --tree-bg: #0a0a0a; --tree-surface: #0f0f0f; --tree-text: #ffb000;
   --tree-accent: #7a4a00; --tree-muted: #a06a00; --tree-border: #3a2200;
@@ -239,7 +242,17 @@ body.tree-theme-amber-crt .cm-dropCursor {
   transform: none;
 }
 
-/* ── Doogie Journal (hidden theme — ABACABB easter egg in tree; WordPerfect DOS look) ── */
+/* ── Doogie journal with crt off (2.0): the blue screen without the CRT, a light grey bar cursor ── */
+body.tree-theme-doogie-plain {
+  --tree-bg: #0000AA; --tree-surface: #0000AA; --tree-text: #EAEAEA;
+  --tree-accent: #00AAAA; --tree-muted: #7575CA; --tree-border: #2323B4;
+  --tree-on-accent: #0000AA; --tree-selection: rgba(0,170,170,0.35);
+}
+body.tree-theme-doogie-plain .markdown-source-view.mod-cm6 .cm-content,
+body.tree-theme-doogie-plain .markdown-rendered { text-shadow: none; }
+body.tree-theme-doogie-plain .cm-cursor { border-left-color: #EAEAEA !important; caret-color: #EAEAEA; }
+
+/* ── Doogie journal with crt on (Retro; WordPerfect DOS look) ── */
 body.tree-theme-doogie-journal {
   --tree-bg: #0000AA; --tree-surface: #0000AA; --tree-text: #EAEAEA;
   --tree-accent: #00AAAA; --tree-muted: #7575CA; --tree-border: #2323B4;
@@ -261,8 +274,8 @@ body.tree-theme-doogie-journal .cm-dropCursor {
    and formatted text. The rules above now only shape the drop cursor. Solid here, glow and all, unlike the
    tinted block of a custom theme. */
 body.tree-theme-terminal-crt.tree-cursor-block .tree-cursor-shape {
-  background-color: #33ff33;
-  box-shadow: 0 0 10px rgba(51,255,51,0.55), 0 0 3px rgba(51,255,51,0.7);
+  background-color: #22cc22;
+  box-shadow: 0 0 10px rgba(34,204,34,0.55), 0 0 3px rgba(34,204,34,0.7);
 }
 body.tree-theme-amber-crt.tree-cursor-block .tree-cursor-shape {
   background-color: #ffb000;
