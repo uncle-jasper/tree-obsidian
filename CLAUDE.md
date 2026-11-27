@@ -43,6 +43,7 @@ node scripts/test-packs.mjs   # packs in the plugin, against a stand-in Obsidian
 
 ## Decisions already made
 
+- **Settings layout** (2.0.1, Dan found it long and messy): Appearance (pack, theme, its switches, font, size, line length), Packs, Custom themes (one editor: an Edit dropdown picks the slot, opening on the custom theme in use), Writing (zen, typewriter, tab out, focus mode), Status line, Proof mode, WordPress. Descriptions kept to a line where the name doesn't say it all.
 - **Status line:** Aa and ¶ on the left; reading time or goal in the middle; word count, character count and cursor position on the right.
   - Counts, reading time, goal, milestones, Just Write and the line number cover only what's written: properties are left out (`noteBody()` in `status.ts`). Mentions aren't part of the note's text.
   - It stays on its note while a sidebar has the focus (`currentNote()` in `main.ts`), and goes only when the main area's most recent pane isn't a note. It used to vanish on a click into the file explorer.

@@ -131,6 +131,7 @@ export const FONTS: Record<string, string> = {
 export const SIZES = [0, 12, 14, 16, 18, 20, 22, 24, 26];
 
 export class TreeSettingTab extends PluginSettingTab {
+  private editing: CustomKey = 'custom';   // the custom theme shown in settings
   constructor(app: App, private plugin: TreePlugin) {
     super(app, plugin);
   }
@@ -151,7 +152,7 @@ export class TreeSettingTab extends PluginSettingTab {
     const pack = store.find(s.pack) ?? TreePacks.BUILTIN[0];
     new Setting(containerEl)
       .setName('Pack')
-      .setDesc('Classic and Retro are built in. More are on the shelf, under Packs below.')
+      .setDesc('Classic and Retro are built in; more under Packs below.')
       .addDropdown(d => d.addOptions(Object.fromEntries(store.all().map(p => [p.id, p.name])))
         .addOptions(store.find(s.pack) ? {} : { [s.pack]: s.packRemembered?.pack === s.pack ? s.pack + ' (not installed)' : s.pack })
         .setValue(s.pack).setDisabled(locked)
@@ -172,7 +173,7 @@ export class TreeSettingTab extends PluginSettingTab {
 
     new Setting(containerEl)
       .setName('Font')
-      .setDesc('Editor and reading view only. Fonts are built in, so they work on iPad too.')
+      .setDesc('Built in, so they work on iPad too.')
       .addDropdown(d => d.addOptions(FONTS).setValue(s.font).setDisabled(locked)
         .onChange(async v => { s.font = v; await save(); }));
 
@@ -183,9 +184,29 @@ export class TreeSettingTab extends PluginSettingTab {
         d.setValue(String(s.fontSize)).setDisabled(locked).onChange(async v => { s.fontSize = Number(v); await save(); });
       });
 
+    new Setting(containerEl)
+      .setName('Line length')
+      .setDesc('Characters per line; Tree uses 68. Applies with Obsidian\'s "Readable line length" on, and always in focus mode.')
+      .addSlider(sl => sl.setLimits(50, 90, 1).setValue(s.lineLength).setDynamicTooltip()
+        .onChange(async v => { s.lineLength = v; await save(); }))
+      .addExtraButton(b => b.setIcon('rotate-ccw').setTooltip('Back to 68')
+        .onClick(async () => { s.lineLength = 68; await save(); this.display(); }));
+
+
+    this.displayPacks(containerEl, locked);
+
+    // Custom themes: one editor, for the slot picked here. It opens on the custom theme in use, if any.
     // Only the custom themes can be named, given a cursor, exported or imported over. The built-in ones are fixed.
-    for (const key of CUSTOM_KEYS) {
-      new Setting(containerEl).setName(CUSTOM_LABELS[key].replace('c', 'C') + ' theme').setHeading();
+    new Setting(containerEl).setName('Custom themes').setHeading();
+    const inUse = customKey(s);
+    if (inUse) this.editing = inUse;
+    const key = this.editing;
+    new Setting(containerEl)
+      .setName('Edit')
+      .setDesc('Three themes of your own, in Classic. The same theme file works in Tree and Ginkgo.')
+      .addDropdown(d => d.addOptions(Object.fromEntries(CUSTOM_KEYS.map(k => [k, s[k].name ? s[k].name + ' (' + CUSTOM_LABELS[k] + ')' : CUSTOM_LABELS[k]])))
+        .setValue(key).onChange(v => { this.editing = v as CustomKey; this.display(); }));
+    {
       const colors = s[key];
       new Setting(containerEl)
         .setName('Name')
@@ -246,24 +267,51 @@ export class TreeSettingTab extends PluginSettingTab {
           .onChange(async v => { colors.cursor = v as CursorStyle; await save(); }));
       new Setting(containerEl)
         .setName('Share')
-        .setDesc('Export saves this theme as a file. Import loads a theme file into this slot. The same file works in Tree and Ginkgo.')
+        .setDesc('Export saves this theme as a file; import loads one into this slot.')
         .addButton(b => b.setButtonText('Export').onClick(() => this.exportTheme(key)))
         .addButton(b => b.setButtonText('Import').setDisabled(locked).onClick(() => this.importTheme(key)));
     }
 
-    this.displayPacks(containerEl, locked);
+    new Setting(containerEl).setName('Writing').setHeading();
+
+    new Setting(containerEl)
+      .setName('Zen mode')
+      .setDesc('Fades everything except what you\'re writing.')
+      .addDropdown(d => d.addOptions({ off: 'off', sentence: 'sentence', paragraph: 'paragraph' })
+        .setValue(s.zen ? s.zenGranularity : 'off')
+        .onChange(async v => {
+          s.zen = v !== 'off';
+          if (v !== 'off') s.zenGranularity = v as TreeSettings['zenGranularity'];
+          await save();
+        }));
+
+    new Setting(containerEl)
+      .setName('Typewriter mode')
+      .setDesc('Keeps the line you\'re typing in the middle of the screen.')
+      .addToggle(t => t.setValue(s.typewriter)
+        .onChange(async v => { s.typewriter = v; await save(); }));
+
+    new Setting(containerEl)
+      .setName('Tab out of formatting')
+      .setDesc('Tab jumps past closing **, *, ~~, ==, ` or ]], as in Tree.')
+      .addToggle(t => t.setValue(s.tabOut)
+        .onChange(async v => { s.tabOut = v; await save(); }));
+
+    new Setting(containerEl)
+      .setName('Focus mode')
+      .setDesc('The ribbon icon or the "Toggle focus mode" command. Escape or the corner mark leaves it.');
 
     new Setting(containerEl).setName('Status line').setHeading();
 
     new Setting(containerEl)
       .setName('Show status line')
-      .setDesc('Tree\'s status line at the bottom of each note. Also shows on iPad.')
+      .setDesc('At the bottom of each note, on iPad too.')
       .addToggle(t => t.setValue(s.statusLine)
         .onChange(async v => { s.statusLine = v; await save(); }));
 
     new Setting(containerEl)
       .setName('Hide Obsidian\'s status bar')
-      .setDesc('While Tree\'s status line is showing. Hover over the faint ⋯ at the right end of Tree\'s line to bring up Obsidian\'s bar (backlinks, sync and so on).')
+      .setDesc('Hover the faint ⋯ at the end of Tree\'s line to bring it back.')
       .addToggle(t => t.setValue(s.hideObsidianStatus)
         .onChange(async v => { s.hideObsidianStatus = v; await save(); }));
 
@@ -288,30 +336,6 @@ export class TreeSettingTab extends PluginSettingTab {
       .addToggle(t => t.setValue(s.showCursor)
         .onChange(async v => { s.showCursor = v; await save(); }));
 
-    new Setting(containerEl).setName('Writing').setHeading();
-
-    new Setting(containerEl)
-      .setName('Zen mode')
-      .setDesc('Fades everything except what you\'re writing, as in Tree. Also in the Aa panel and the "Tree: Toggle zen mode" command.')
-      .addDropdown(d => d.addOptions({ off: 'off', sentence: 'sentence', paragraph: 'paragraph' })
-        .setValue(s.zen ? s.zenGranularity : 'off')
-        .onChange(async v => {
-          s.zen = v !== 'off';
-          if (v !== 'off') s.zenGranularity = v as TreeSettings['zenGranularity'];
-          await save();
-        }));
-
-    new Setting(containerEl)
-      .setName('Typewriter mode')
-      .setDesc('Keeps the line you\'re typing in the middle of the screen.')
-      .addToggle(t => t.setValue(s.typewriter)
-        .onChange(async v => { s.typewriter = v; await save(); }));
-
-    new Setting(containerEl)
-      .setName('Tab out of formatting')
-      .setDesc('With the cursor just before closing **, *, ***, ~~, ==, ` or ]], Tab jumps past them, as in Tree. Everywhere else Tab works as usual.')
-      .addToggle(t => t.setValue(s.tabOut)
-        .onChange(async v => { s.tabOut = v; await save(); }));
 
     new Setting(containerEl).setName('Proof mode').setHeading();
     containerEl.createEl('p', { cls: 'setting-item-description', text:
@@ -365,21 +389,6 @@ export class TreeSettingTab extends PluginSettingTab {
           .onChange(v => this.app.secretStorage.setSecret(WP_SECRET_ID, v.trim()));
       });
 
-    new Setting(containerEl).setName('Writing column').setHeading();
-
-    new Setting(containerEl)
-      .setName('Line length')
-      .setDesc('Characters per line. Tree uses 68, inside the 60–75 range typographers recommend for comfortable reading. '
-        + 'Applies when Obsidian\'s "Readable line length" is on, and always in focus mode.')
-      .addSlider(sl => sl.setLimits(50, 90, 1).setValue(s.lineLength).setDynamicTooltip()
-        .onChange(async v => { s.lineLength = v; await save(); }))
-      .addExtraButton(b => b.setIcon('rotate-ccw').setTooltip('Back to 68')
-        .onClick(async () => { s.lineLength = 68; await save(); this.display(); }));
-
-    new Setting(containerEl)
-      .setName('Focus mode')
-      .setDesc('Toggle with the ribbon icon or the "Tree: Toggle focus mode" command. Escape or the corner mark leaves it. '
-        + 'The Aa at the end of the status line changes theme, font and size without opening settings.');
   }
 
   // Desktop hands you the file. Obsidian on iPad and iPhone can't, so there it goes into the vault.
