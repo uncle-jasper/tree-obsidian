@@ -79,11 +79,6 @@ function themeRows(plugin: TreePlugin): Choice[] {
     get: s => (switchOn(s, theme, sw.label) ? 'on' : 'off'),
     set: (_s, k) => plugin.setSwitch(sw.label, k === 'on'),
   });
-  // The panel grows up from the status line, so a theme with fewer switches would move every row above.
-  // Empty rows keep the place of switches this theme lacks: stepping through packs and themes, the
-  // pack and theme rows stay put under the pointer.
-  const most = Math.max(0, ...store.all().flatMap(p => p.themes.map(t => TreePacks.switchesOf(t).length)));
-  for (let n = switches.length; n < most; n++) rows.push({ label: '', options: onOff, get: () => 'off', set: () => {}, spacer: true });
   return rows;
 }
 
@@ -141,7 +136,14 @@ export class QuickPanel {
     const s = this.plugin.settings;
     this.el.empty();
 
-    for (const choice of [...themeRows(this.plugin), ...SETTINGS_ROWS]) {
+    // The panel grows up from the status line, so a theme with fewer switches would move every row above.
+    // Empty rows at the bottom make up for switches this theme lacks: the panel keeps its height, and
+    // stepping through packs and themes, the pack and theme rows stay put under the pointer.
+    const rows = [...themeRows(this.plugin), ...SETTINGS_ROWS];
+    const most = Math.max(0, ...this.plugin.packs.all().flatMap(p => p.themes.map(t => TreePacks.switchesOf(t).length)));
+    const has = TreePacks.switchesOf(TreePacks.findTheme(this.plugin.packs.find(s.pack), s.theme)).length;
+    for (let n = has; n < most; n++) rows.push({ label: '', options: onOff, get: () => 'off', set: () => {}, spacer: true });
+    for (const choice of rows) {
       const current = choice.get(s);
       const found = choice.options.findIndex(o => o.key === current);
       const i = Math.max(0, found);
