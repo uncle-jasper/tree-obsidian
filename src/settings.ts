@@ -187,10 +187,10 @@ export class TreeSettingTab extends PluginSettingTab {
     new Setting(containerEl)
       .setName('Line length')
       .setDesc('Characters per line; Tree uses 68. Applies with Obsidian\'s "Readable line length" on, and always in focus mode.')
-      .addSlider(sl => sl.setLimits(50, 90, 1).setValue(s.lineLength).setDynamicTooltip()
+      .addSlider(sl => sl.setLimits(50, 90, 1).setValue(s.lineLength).setDynamicTooltip().setDisabled(locked)
         .onChange(async v => { s.lineLength = v; await save(); }))
-      .addExtraButton(b => b.setIcon('rotate-ccw').setTooltip('Back to 68')
-        .onClick(async () => { s.lineLength = 68; await save(); this.display(); }));
+      .addExtraButton(b => b.setIcon('rotate-ccw').setTooltip('Back to 68').setDisabled(locked)
+        .onClick(async () => { if (locked) return; s.lineLength = 68; await save(); this.display(); }));
 
 
     this.displayPacks(containerEl, locked);

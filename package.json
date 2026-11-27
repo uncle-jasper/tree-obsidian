@@ -1,6 +1,6 @@
 {
   "name": "tree-writer",
-  "version": "2.0.1",
+  "version": "2.0.2",
   "description": "Tree for Obsidian",
   "scripts": {
     "build": "node scripts/check-engine.cjs && tsc && node esbuild.config.mjs && node scripts/smoke.cjs && node scripts/build-css.mjs"
