@@ -10,6 +10,7 @@ interface Choice {
   options: Option[];
   get(s: TreeSettings): string;
   set(s: TreeSettings, key: string): void;
+  spacer?: boolean;   // an empty row, holding the place of a switch this theme doesn't have
 }
 
 const onOff: Option[] = [{ key: 'off', label: 'off' }, { key: 'on', label: 'on' }];
@@ -71,12 +72,18 @@ function themeRows(plugin: TreePlugin): Choice[] {
     set: (_s, k) => plugin.selectTheme(pack.id, k),
   });
   const theme = TreePacks.findTheme(pack, s.theme);
-  for (const sw of TreePacks.switchesOf(theme)) rows.push({
+  const switches = TreePacks.switchesOf(theme);
+  for (const sw of switches) rows.push({
     label: sw.label,
     options: onOff,
     get: s => (switchOn(s, theme, sw.label) ? 'on' : 'off'),
     set: (_s, k) => plugin.setSwitch(sw.label, k === 'on'),
   });
+  // The panel grows up from the status line, so a theme with fewer switches would move every row above.
+  // Empty rows keep the place of switches this theme lacks: stepping through packs and themes, the
+  // pack and theme rows stay put under the pointer.
+  const most = Math.max(0, ...store.all().flatMap(p => p.themes.map(t => TreePacks.switchesOf(t).length)));
+  for (let n = switches.length; n < most; n++) rows.push({ label: '', options: onOff, get: () => 'off', set: () => {}, spacer: true });
   return rows;
 }
 
@@ -142,6 +149,7 @@ export class QuickPanel {
       const isOpen = this.listOpen === choice.label;
 
       const row = this.el.createDiv({ cls: 'tree-quick-row' });
+      if (choice.spacer) { row.addClass('is-spacer'); row.setAttr('aria-hidden', 'true'); }
       row.createSpan({ cls: 'tree-quick-label', text: choice.label });
       row.createEl('button', { cls: 'tree-quick-arrow', text: '‹' }).onclick = () => this.pick(choice, step(-1));
       const value = row.createEl('button', { cls: 'tree-quick-value' + (isOpen ? ' is-active' : ''), text: found >= 0 ? choice.options[i].label : current });
