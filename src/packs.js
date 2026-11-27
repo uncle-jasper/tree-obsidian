@@ -57,6 +57,7 @@
         const c = rect(r, true);
         if (c) { c.chance = num(r.chance, 0, 1, 0.5); out.regions.push(c); }
       }
+      if (e.style === 'snow') out.style = 'snow';   // round flakes that drift; streaks otherwise
       return sw(e, out);
     }
     if (e.type === 'light') {
@@ -395,11 +396,24 @@
       const canvas = place(doc.createElement('canvas'), -1);
       const ctx = canvas.getContext('2d');
       const r = { canvas, theme, index, drops: [], w: 0, h: 0, running: false, easing: false, frame: 0, booted: false };
-      let e, base;
-      r.setEffect = (eff, th) => { e = eff; base = rgb(eff.color || th.colors.muted).join(','); };
+      let e, base, snow = false;
+      r.setEffect = (eff, th) => { e = eff; snow = eff.style === 'snow'; base = rgb(eff.color || th.colors.muted).join(','); };
       r.setEffect(effect, theme);
 
+      // Snow: round flakes, nearer ones bigger, brighter and quicker, swaying as they fall.
+      // Its own path, so rain stays drop for drop what it always was.
+      function flake(anywhere) {
+        const z = Math.random();
+        return {
+          x: Math.random() * (r.w + 60) - 30,
+          y: anywhere ? Math.random() * r.h : -10 - Math.random() * r.h * 0.6,
+          rad: (0.8 + z * 1.6) * e.length, v: (0.5 + z * 1.1) * e.speed,
+          a: Math.min(1, (0.25 + z * 0.35) * e.opacity),
+          phase: Math.random() * Math.PI * 2, sway: 0.3 + z * 0.6,
+        };
+      }
       function drop(anywhere) {
+        if (snow) return flake(anywhere);
         const z = Math.random();
         const d = {
           x: Math.random() * (r.w + 60) - 30,
@@ -409,7 +423,7 @@
         if (e.regions.length) d.lit = Math.random();
         return d;
       }
-      const count = () => Math.round((r.w * r.h) / 2600 * e.density);
+      const count = () => Math.round((r.w * r.h) / (snow ? 6000 : 2600) * e.density);
       function size() {
         const dpr = Math.min(win.devicePixelRatio || 1, 2);
         r.w = contained ? canvas.clientWidth : win.innerWidth;
@@ -428,6 +442,16 @@
       }
       function draw() {
         ctx.clearRect(0, 0, r.w, r.h);
+        if (snow) {
+          for (const d of r.drops) {
+            if (!d) continue;
+            ctx.fillStyle = 'rgba(' + base + ',' + d.a + ')';
+            ctx.beginPath();
+            ctx.arc(d.x, d.y, d.rad, 0, Math.PI * 2);
+            ctx.fill();
+          }
+          return;
+        }
         ctx.lineWidth = 1; ctx.lineCap = 'round';
         for (const d of r.drops) {
           if (!d) continue;
@@ -447,7 +471,8 @@
         for (let i = 0; i < r.drops.length; i++) {
           const d = r.drops[i];
           if (!d) continue;
-          d.y += d.v; d.x -= d.v * e.slant;
+          d.y += d.v;
+          d.x -= snow ? d.v * e.slant - Math.sin(d.phase + d.y * 0.015) * d.sway * 0.35 : d.v * e.slant;
           if (d.y > r.h + 20) r.drops[i] = r.easing ? null : drop(false);
           if (r.drops[i]) left++;
         }
