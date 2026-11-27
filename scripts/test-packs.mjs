@@ -133,6 +133,17 @@ await test('a pack opens on its everyday theme, then on the one last used', asyn
   assert.strictEqual(p.settings.theme, 'wet-neon');
   assert.deepStrictEqual(p.packs.all().map(x => x.id), ['classic', 'retro', 'rain']);
 });
+await test('returning to Classic remembers "none" too', async () => {
+  const p = await start({ theme: '' });
+  p.selectPack('retro');
+  assert.strictEqual(p.settings.pack, 'retro');
+  p.selectPack('classic');
+  assert.deepStrictEqual([p.settings.pack, p.settings.theme, lookOf(p.settings)], ['classic', '', '']);
+  p.selectTheme('classic', 'sage');
+  p.selectPack('retro');
+  p.selectPack('classic');
+  assert.strictEqual(p.settings.theme, 'sage');
+});
 await test('a broken pack file is refused in one line', async () => {
   const p = await start({ theme: 'moss' });
   const r = await p.packs.install('{"treePack":1,"id":"x"}');

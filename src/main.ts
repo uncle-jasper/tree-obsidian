@@ -242,7 +242,10 @@ export default class TreePlugin extends Plugin {
   // Choosing: the pack row opens a pack on the theme last used in it, the everyday one the first time
   selectPack(id: string) {
     const pack = this.packs.find(id);
-    if (pack) this.selectTheme(id, TreePacks.openingTheme(pack, this.settings.packLast).id);
+    if (!pack) return;
+    // "none" isn't one of Classic's own themes, so the engine can't remember it: remembered here
+    if (id === 'classic' && this.settings.packLast.classic === '') { this.selectTheme('classic', ''); return; }
+    this.selectTheme(id, TreePacks.openingTheme(pack, this.settings.packLast).id);
   }
   selectTheme(packId: string, themeId: string) {
     const s = this.settings, pack = this.packs.find(packId);
