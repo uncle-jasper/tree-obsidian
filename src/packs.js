@@ -304,9 +304,11 @@
     function place(el, z, css) {
       el.className = uid + '-layer tp-layer ' + (z < 0 ? 'tp-behind' : 'tp-front');
       el.setAttribute('aria-hidden', 'true');
+      // A canvas needs its size spelled out; a div fills its inset, which may reach past the edges (light streaks).
+      const size = el.tagName === 'CANVAS' ? 'width:100%;height:100%;' : '';
       el.style.cssText = (contained
-        ? `position:absolute;inset:0;width:100%;height:100%;pointer-events:none;z-index:${z < 0 ? 'auto' : 10};`
-        : `position:fixed;inset:0;width:100%;height:100%;pointer-events:none;z-index:${z};`) + 'display:block;' + (css || '');
+        ? `position:absolute;inset:0;${size}pointer-events:none;z-index:${z < 0 ? 'auto' : 10};`
+        : `position:fixed;inset:0;${size}pointer-events:none;z-index:${z};`) + 'display:block;' + (css || '');
       // Contained, a layer behind the page comes first, so the page paints over it.
       if (contained && z < 0) layersIn.prepend(el); else layersIn.appendChild(el);
       layers.push(el);
